@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma'
 import { AuthRequest } from '../middleware/auth'
-
-const prisma = new PrismaClient()
 
 export async function logAudit(
   req: AuthRequest,

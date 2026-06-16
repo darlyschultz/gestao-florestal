@@ -11,3 +11,5 @@ backups/
 *.local
 .DS_Store
 *.log
+.vercel
+.env*

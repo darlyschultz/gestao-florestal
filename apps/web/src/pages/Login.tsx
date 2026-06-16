@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react'
+import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -22,8 +23,18 @@ export function Login() {
     try {
       await login(form.email, form.senha)
       navigate('/menu')
-    } catch {
-      setError('Email ou senha inválidos. Verifique suas credenciais.')
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          setError('Email ou senha inválidos. Verifique suas credenciais.')
+        } else if (!err.response) {
+          setError('Não foi possível conectar ao servidor. Aguarde e tente novamente.')
+        } else {
+          setError('Erro temporário no servidor. Tente novamente em alguns segundos.')
+        }
+      } else {
+        setError('Erro inesperado. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }

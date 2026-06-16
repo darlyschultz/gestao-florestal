@@ -1,10 +1,9 @@
 import { Router, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest, requirePerfil } from '../middleware/auth'
 import { logAudit } from '../utils/audit'
+import { prisma } from '../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 router.use(authMiddleware)
 router.use(requirePerfil('admin'))

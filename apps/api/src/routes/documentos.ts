@@ -1,10 +1,9 @@
 import { Router, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { uploadMiddleware, saveUploadedFile } from '../utils/storage'
+import { prisma } from '../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 const upload = uploadMiddleware
 

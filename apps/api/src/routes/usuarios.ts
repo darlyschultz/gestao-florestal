@@ -1,11 +1,10 @@
 import { Router, Response } from 'express'
 import bcrypt from 'bcryptjs'
-import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest, requirePerfil } from '../middleware/auth'
 import { logAudit } from '../utils/audit'
+import { prisma } from '../lib/prisma'
 
 const router = Router()
-const prisma = new PrismaClient()
 
 const userSelect = {
   id: true,
