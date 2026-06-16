@@ -83,7 +83,10 @@ router.get('/indicadores', async (req: AuthRequest, res: Response) => {
       }),
     ])
 
-    const volumeTotal = pesagens.reduce((acc, p) => acc + (p.pesoLiquidoKg || 0), 0)
+    const volumeTotal = pesagens.reduce(
+      (acc: number, p: { pesoLiquidoKg: number | null }) => acc + (p.pesoLiquidoKg || 0),
+      0
+    )
 
     const rankingTransportadoras = await prisma.viagem.groupBy({
       by: ['transportadoraId'],
@@ -94,13 +97,15 @@ router.get('/indicadores', async (req: AuthRequest, res: Response) => {
     })
 
     const transportadorasDetalhes = await prisma.transportadora.findMany({
-      where: { id: { in: rankingTransportadoras.map((r) => r.transportadoraId) } },
+      where: {
+        id: { in: rankingTransportadoras.map((r: { transportadoraId: string }) => r.transportadoraId) },
+      },
       select: { id: true, nome: true },
     })
 
-    const ranking = rankingTransportadoras.map((r) => ({
+    const ranking = rankingTransportadoras.map((r: { transportadoraId: string; _count: { id: number } }) => ({
       ...r,
-      transportadora: transportadorasDetalhes.find((t) => t.id === r.transportadoraId),
+      transportadora: transportadorasDetalhes.find((t: { id: string }) => t.id === r.transportadoraId),
     }))
 
     return res.json({

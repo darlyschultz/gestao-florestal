@@ -43,8 +43,13 @@ router.get('/valores', async (req: AuthRequest, res: Response) => {
       where: { entityType: entityType as string, entityId: entityId as string },
     })
 
-    const valueMap = Object.fromEntries(values.map((v) => [v.customFieldId, v.value]))
-    const result = fields.map((f) => ({ ...f, currentValue: valueMap[f.id] ?? f.defaultValue ?? null }))
+    const valueMap = Object.fromEntries(
+      values.map((v: { customFieldId: string; value: string | null }) => [v.customFieldId, v.value])
+    )
+    const result = fields.map((f: { id: string; defaultValue: string | null }) => ({
+      ...f,
+      currentValue: valueMap[f.id] ?? f.defaultValue ?? null,
+    }))
 
     return res.json(result)
   } catch {

@@ -53,9 +53,11 @@ router.get('/resumo', async (_req: AuthRequest, res: Response) => {
       }
     }
 
-    const tempos = fila.map((f) => f.tempoEstimadoMin).filter((t): t is number => t != null)
+    const tempos = fila
+      .map((f: { tempoEstimadoMin: number | null }) => f.tempoEstimadoMin)
+      .filter((t): t is number => t != null)
     const tempoMedioEstimado = tempos.length
-      ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length)
+      ? Math.round(tempos.reduce((a: number, b: number) => a + b, 0) / tempos.length)
       : 0
 
     return res.json({

@@ -1,4 +1,4 @@
-import { PrismaClient, JanelaAgendamento, SystemSettings } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -55,7 +55,7 @@ function generateSlots(inicio: string, fim: string, intervalo: number): string[]
   return slots
 }
 
-async function getSettings(): Promise<SystemSettings> {
+async function getSettings() {
   let settings = await prisma.systemSettings.findFirst()
   if (!settings) {
     settings = await prisma.systemSettings.create({ data: {} })
@@ -63,7 +63,7 @@ async function getSettings(): Promise<SystemSettings> {
   return settings
 }
 
-async function getJanelasAtivas(diaSemana?: number): Promise<JanelaAgendamento[]> {
+async function getJanelasAtivas(diaSemana?: number) {
   const where: { active: boolean; deletedAt: null; diaSemana?: number } = {
     active: true,
     deletedAt: null,
