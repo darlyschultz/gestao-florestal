@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -54,30 +54,43 @@ export function AgendamentosPortaria({
   const [ordem, setOrdem] = useState<'asc' | 'desc'>('asc')
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [loading, setLoading] = useState(true)
-
-  const carregar = useCallback(async () => {
-    setLoading(true)
-    onLoadingChange?.(true)
-    try {
-      const params: Record<string, string> = { ordenar, ordem, status }
-      if (periodo !== 'todos') params.periodo = periodo
-      if (search) params.q = search
-
-      const r = await portariaService.listAgendamentos(params)
-      setAgendamentos(r.data)
-      onTotalChange?.(r.data.length)
-    } catch {
-      setAgendamentos([])
-      onTotalChange?.(0)
-    } finally {
-      setLoading(false)
-      onLoadingChange?.(false)
-    }
-  }, [periodo, status, search, ordenar, ordem, onTotalChange, onLoadingChange])
+  const onTotalChangeRef = useRef(onTotalChange)
+  const onLoadingChangeRef = useRef(onLoadingChange)
 
   useEffect(() => {
+    onTotalChangeRef.current = onTotalChange
+    onLoadingChangeRef.current = onLoadingChange
+  })
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function carregar() {
+      setLoading(true)
+      onLoadingChangeRef.current?.(true)
+      try {
+        const params: Record<string, string> = { ordenar, ordem, status }
+        if (periodo !== 'todos') params.periodo = periodo
+        if (search) params.q = search
+
+        const r = await portariaService.listAgendamentos(params, { signal: controller.signal })
+        setAgendamentos(r.data)
+        onTotalChangeRef.current?.(r.data.length)
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return
+        setAgendamentos([])
+        onTotalChangeRef.current?.(0)
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+          onLoadingChangeRef.current?.(false)
+        }
+      }
+    }
+
     carregar()
-  }, [carregar])
+    return () => controller.abort()
+  }, [periodo, status, search, ordenar, ordem])
 
   function toggleOrdem() {
     setOrdem((o) => (o === 'asc' ? 'desc' : 'asc'))

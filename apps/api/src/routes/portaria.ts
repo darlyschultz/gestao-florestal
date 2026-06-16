@@ -1,27 +1,12 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
+import { portariaAgendamentoListInclude, portariaCheckinInclude } from '../lib/queryIncludes'
 import type { Prisma } from '@prisma/client'
 
 const router = Router()
 
-const agendamentoInclude = {
-  transportadora: true,
-  motorista: true,
-  veiculo: true,
-  fornecedor: true,
-  fazenda: true,
-  talhao: true,
-  localEmbarque: true,
-  viagem: {
-    include: {
-      documentos: true,
-      motorista: true,
-      veiculo: true,
-      transportadora: true,
-    },
-  },
-} satisfies Prisma.AgendamentoInclude
+const LIST_LIMIT = 150
 
 function startOfDay(date: Date) {
   const d = new Date(date)
@@ -145,10 +130,12 @@ router.get('/agendamentos', async (req: AuthRequest, res: Response) => {
 
     const agendamentos = await prisma.agendamento.findMany({
       where,
-      include: agendamentoInclude,
+      include: portariaAgendamentoListInclude,
       orderBy,
+      take: LIST_LIMIT,
     })
 
+    res.set('Cache-Control', 'private, max-age=5')
     return res.json(agendamentos)
   } catch (error) {
     console.error(error)
@@ -162,35 +149,21 @@ router.get('/buscar', async (req: AuthRequest, res: Response) => {
 
     if (!q) return res.status(400).json({ error: 'Informe um termo de busca' })
 
-    const viagens = await prisma.viagem.findMany({
+    const viagem = await prisma.viagem.findFirst({
       where: {
         OR: [
-          { numero: { contains: q as string } },
-          { veiculo: { placa: { contains: q as string } } },
-          { agendamento: { numero: { contains: q as string } } },
-          { documentos: { some: { numero: { contains: q as string } } } },
+          { numero: { contains: q as string, mode: 'insensitive' } },
+          { veiculo: { placa: { contains: q as string, mode: 'insensitive' } } },
+          { agendamento: { numero: { contains: q as string, mode: 'insensitive' } } },
+          { documentos: { some: { numero: { contains: q as string, mode: 'insensitive' } } } },
         ],
         status: { in: ['agendado', 'em_transito', 'proximo_fabrica', 'portaria'] },
       },
-      include: {
-        agendamento: {
-          include: {
-            transportadora: true,
-            motorista: true,
-            veiculo: true,
-            fornecedor: true,
-            fazenda: true,
-            talhao: true,
-            localEmbarque: true,
-          },
-        },
-        motorista: true,
-        veiculo: true,
-        documentos: true,
-      },
+      include: portariaCheckinInclude,
+      orderBy: { updatedAt: 'desc' },
     })
 
-    return res.json(viagens)
+    return res.json(viagem ? [viagem] : [])
   } catch {
     return res.status(500).json({ error: 'Erro na busca' })
   }

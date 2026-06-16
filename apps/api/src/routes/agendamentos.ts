@@ -26,6 +26,7 @@ router.use(authMiddleware)
 router.get('/regras', async (_req: AuthRequest, res: Response) => {
   try {
     const regras = await getRegrasAgendamento()
+    res.set('Cache-Control', 'public, max-age=60')
     return res.json(regras)
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar regras de agendamento' })
@@ -84,6 +85,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       where,
       include,
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
 
     return res.json(agendamentos)

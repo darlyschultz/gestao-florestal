@@ -1,10 +1,11 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
+import { viagemListInclude } from '../lib/queryIncludes'
 
 const router = Router()
 
-const include = {
+const includeDetail = {
   agendamento: {
     include: {
       transportadora: true,
@@ -36,10 +37,12 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     const viagens = await prisma.viagem.findMany({
       where,
-      include,
-      orderBy: { createdAt: 'desc' },
+      include: viagemListInclude,
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
     })
 
+    res.set('Cache-Control', 'private, max-age=5')
     return res.json(viagens)
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar viagens' })
@@ -50,7 +53,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const viagem = await prisma.viagem.findUnique({
       where: { id: req.params.id },
-      include,
+      include: includeDetail,
     })
 
     if (!viagem) return res.status(404).json({ error: 'Viagem não encontrada' })
@@ -71,7 +74,7 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
     const atualizada = await prisma.viagem.update({
       where: { id: req.params.id },
       data: { status, latAtual: latitude, lngAtual: longitude },
-      include,
+      include: includeDetail,
     })
 
     await prisma.eventoViagem.create({

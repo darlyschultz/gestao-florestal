@@ -1,4 +1,7 @@
 import { prisma } from '../lib/prisma'
+import { cacheGetOrSet } from '../lib/cache'
+
+const CACHE_TTL_MS = 60_000
 
 export interface SlotDisponibilidade {
   horario: string
@@ -54,21 +57,26 @@ function generateSlots(inicio: string, fim: string, intervalo: number): string[]
 }
 
 async function getSettings() {
-  let settings = await prisma.systemSettings.findFirst()
-  if (!settings) {
-    settings = await prisma.systemSettings.create({ data: {} })
-  }
-  return settings
+  return cacheGetOrSet('settings', CACHE_TTL_MS, async () => {
+    let settings = await prisma.systemSettings.findFirst()
+    if (!settings) {
+      settings = await prisma.systemSettings.create({ data: {} })
+    }
+    return settings
+  })
 }
 
 async function getJanelasAtivas(diaSemana?: number) {
-  const where: { active: boolean; deletedAt: null; diaSemana?: number } = {
-    active: true,
-    deletedAt: null,
-  }
-  if (diaSemana !== undefined) where.diaSemana = diaSemana
+  const cacheKey = diaSemana === undefined ? 'janelas:all' : `janelas:${diaSemana}`
+  return cacheGetOrSet(cacheKey, CACHE_TTL_MS, async () => {
+    const where: { active: boolean; deletedAt: null; diaSemana?: number } = {
+      active: true,
+      deletedAt: null,
+    }
+    if (diaSemana !== undefined) where.diaSemana = diaSemana
 
-  return prisma.janelaAgendamento.findMany({ where, orderBy: { horarioInicial: 'asc' } })
+    return prisma.janelaAgendamento.findMany({ where, orderBy: { horarioInicial: 'asc' } })
+  })
 }
 
 function slotKeyFromDate(dt: Date): string {
@@ -100,42 +108,47 @@ function countBySlot(
 }
 
 export async function getRegrasAgendamento(): Promise<RegrasAgendamento> {
-  const settings = await getSettings()
-  const janelas = await getJanelasAtivas()
-  const diasComJanela = [...new Set(janelas.map((j) => j.diaSemana))].sort()
+  return cacheGetOrSet('regras:agendamento', CACHE_TTL_MS, async () => {
+    const [settings, janelas] = await Promise.all([getSettings(), getJanelasAtivas()])
+    const diasComJanela = [...new Set(janelas.map((j) => j.diaSemana))].sort()
 
-  return {
-    requireNf: settings.requireNf,
-    requireMdfe: settings.requireMdfe,
-    requireLoadingOrder: settings.requireLoadingOrder,
-    requireBoardingLocation: settings.requireBoardingLocation,
-    requireGpsTracking: settings.requireGpsTracking,
-    boardingGeofenceRadiusMeters: settings.boardingGeofenceRadiusMeters,
-    scheduleIntervalMinutes: settings.scheduleIntervalMinutes,
-    maxTrucksPerSlot: settings.maxTrucksPerSlot,
-    gateOpenTime: settings.gateOpenTime || '06:00',
-    gateCloseTime: settings.gateCloseTime || '22:00',
-    diasComJanela,
-  }
+    return {
+      requireNf: settings.requireNf,
+      requireMdfe: settings.requireMdfe,
+      requireLoadingOrder: settings.requireLoadingOrder,
+      requireBoardingLocation: settings.requireBoardingLocation,
+      requireGpsTracking: settings.requireGpsTracking,
+      boardingGeofenceRadiusMeters: settings.boardingGeofenceRadiusMeters,
+      scheduleIntervalMinutes: settings.scheduleIntervalMinutes,
+      maxTrucksPerSlot: settings.maxTrucksPerSlot,
+      gateOpenTime: settings.gateOpenTime || '06:00',
+      gateCloseTime: settings.gateCloseTime || '22:00',
+      diasComJanela,
+    }
+  })
 }
 
 export async function getDisponibilidadeDia(dataStr: string): Promise<DisponibilidadeDia> {
-  const settings = await getSettings()
+  return cacheGetOrSet(`disponibilidade:${dataStr}`, 30_000, async () => {
+  const [settings, todasJanelas, agendamentos] = await Promise.all([
+    getSettings(),
+    getJanelasAtivas(),
+    (async () => {
+      const nextDay = new Date(`${dataStr}T00:00:00`)
+      nextDay.setDate(nextDay.getDate() + 1)
+      return prisma.agendamento.findMany({
+        where: {
+          status: { not: 'cancelado' },
+          dataHoraSaidaPrevista: { gte: new Date(`${dataStr}T00:00:00`), lt: nextDay },
+        },
+        select: { dataHoraSaidaPrevista: true },
+      })
+    })(),
+  ])
+
   const d = new Date(`${dataStr}T12:00:00`)
   const diaSemana = d.getDay()
-  const todasJanelas = await getJanelasAtivas()
-  const janelas = await getJanelasAtivas(diaSemana)
-
-  const nextDay = new Date(`${dataStr}T00:00:00`)
-  nextDay.setDate(nextDay.getDate() + 1)
-
-  const agendamentos = await prisma.agendamento.findMany({
-    where: {
-      status: { not: 'cancelado' },
-      dataHoraSaidaPrevista: { gte: new Date(`${dataStr}T00:00:00`), lt: nextDay },
-    },
-    select: { dataHoraSaidaPrevista: true },
-  })
+  const janelas = todasJanelas.filter((j) => j.diaSemana === diaSemana)
 
   const semJanela: DisponibilidadeDia = {
     data: dataStr,
@@ -213,6 +226,7 @@ export async function getDisponibilidadeDia(dataStr: string): Promise<Disponibil
       return { horario, ocupados, capacidade: capSlot, disponivel: ocupados < capSlot }
     }),
   }
+  })
 }
 
 export async function validarHorarioAgendamento(dataHoraSaida: Date | string): Promise<{ ok: true } | { ok: false; error: string }> {

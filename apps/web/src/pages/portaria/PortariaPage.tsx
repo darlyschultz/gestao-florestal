@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { List, SearchCheck } from 'lucide-react'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { AppHeader } from '../../components/layout/AppHeader'
@@ -23,9 +23,12 @@ export function PortariaPage() {
   const [triggerCheckinSearch, setTriggerCheckinSearch] = useState(0)
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350)
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 500)
     return () => clearTimeout(t)
   }, [search])
+
+  const handleTotalChange = useCallback((total: number) => setTotalAgendamentos(total), [])
+  const handleLoadingChange = useCallback((loading: boolean) => setLoadingLista(loading), [])
 
   function handleSelecionarAgendamento(ag: Agendamento) {
     const termo =
@@ -90,8 +93,8 @@ export function PortariaPage() {
           status={status}
           search={debouncedSearch}
           onSelecionar={handleSelecionarAgendamento}
-          onTotalChange={setTotalAgendamentos}
-          onLoadingChange={setLoadingLista}
+          onTotalChange={handleTotalChange}
+          onLoadingChange={handleLoadingChange}
         />
       ) : (
         <CheckinPortaria

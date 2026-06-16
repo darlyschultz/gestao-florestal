@@ -521,6 +521,9 @@ model Agendamento {
   user           User           @relation(fields: [userId], references: [id])
   viagem         Viagem?
 
+  @@index([dataHoraChegadaPrevista])
+  @@index([dataHoraSaidaPrevista])
+  @@index([status])
   @@map("agendamentos")
 }
 
@@ -554,6 +557,8 @@ model Viagem {
   pesagens       Pesagem[]
   descargas      Descarga[]
 
+  @@index([status])
+  @@index([updatedAt])
   @@map("viagens")
 }
 
@@ -570,6 +575,8 @@ model DocumentoViagem {
 
   viagem Viagem @relation(fields: [viagemId], references: [id])
 
+  @@index([viagemId])
+  @@index([numero])
   @@map("documentos_viagem")
 }
 
@@ -645,6 +652,7 @@ model FilaPatio {
 
   viagem Viagem @relation(fields: [viagemId], references: [id])
 
+  @@index([status])
   @@map("fila_patio")
 }
 
