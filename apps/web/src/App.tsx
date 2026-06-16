@@ -24,7 +24,7 @@ import { AlertasViagem } from './pages/viagens/AlertasViagem'
 import { HistoricoViagem } from './pages/viagens/HistoricoViagem'
 
 // Portaria
-import { CheckinPortaria } from './pages/portaria/CheckinPortaria'
+import { PortariaPage } from './pages/portaria/PortariaPage'
 
 // Operação
 import { FilaPatio } from './pages/operacao/FilaPatio'
@@ -108,7 +108,7 @@ function AppRoutes() {
       <Route path="/viagens/:id/historico" element={<PrivateRoute><HistoricoViagem /></PrivateRoute>} />
 
       {/* Portaria */}
-      <Route path="/portaria" element={<PrivateRoute><CheckinPortaria /></PrivateRoute>} />
+      <Route path="/portaria" element={<PrivateRoute><PortariaPage /></PrivateRoute>} />
 
       {/* Operação */}
       <Route path="/fila-patio" element={<PrivateRoute><FilaPatio /></PrivateRoute>} />

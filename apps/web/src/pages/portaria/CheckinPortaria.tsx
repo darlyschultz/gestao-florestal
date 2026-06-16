@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import { Search, CheckCircle, XCircle, Truck, User, FileText, MapPin, AlertCircle } from 'lucide-react'
-import { PageLayout } from '../../components/layout/PageLayout'
-import { AppHeader } from '../../components/layout/AppHeader'
+import React, { useState, useEffect } from 'react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Search, CheckCircle, XCircle, Truck, User, FileText, MapPin, AlertCircle, Clock, TreePine, Building2 } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
 import { Button } from '../../components/ui/Button'
@@ -47,8 +47,21 @@ const MOCK_RESULT: Viagem = {
   ],
 }
 
-export function CheckinPortaria() {
-  const [query, setQuery] = useState('')
+interface CheckinPortariaProps {
+  query?: string
+  searchTrigger?: number
+  autoSearch?: boolean
+  embedded?: boolean
+  onSearchingChange?: (searching: boolean) => void
+}
+
+export function CheckinPortaria({
+  query = '',
+  searchTrigger = 0,
+  autoSearch = false,
+  embedded = false,
+  onSearchingChange,
+}: CheckinPortariaProps) {
   const [searching, setSearching] = useState(false)
   const [result, setResult] = useState<Viagem | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -63,34 +76,51 @@ export function CheckinPortaria() {
     setDocumentos(viagem.documentos || [])
   }
 
-  async function handleSearch() {
-    if (!query.trim()) return
+  useEffect(() => {
+    if (autoSearch && query.trim()) {
+      handleSearch(query)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (searchTrigger > 0 && query.trim()) {
+      handleSearch(query)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTrigger])
+
+  async function handleSearch(searchTerm: string) {
+    const term = searchTerm.trim()
+    if (!term) return
     setSearching(true)
+    onSearchingChange?.(true)
     setNotFound(false)
     setResult(null)
     setDocumentos([])
     setAction(null)
 
     try {
-      const r = await portariaService.buscar(query)
+      const r = await portariaService.buscar(term)
       if (r.data.length > 0) {
         setResultWithDocs(r.data[0])
       } else {
         // Demo mock
-        if (query.toLowerCase().includes('che') || query.toLowerCase().includes('2024')) {
+        if (term.toLowerCase().includes('che') || term.toLowerCase().includes('2024')) {
           setResultWithDocs(MOCK_RESULT)
         } else {
           setNotFound(true)
         }
       }
     } catch {
-      if (query.toLowerCase().includes('che') || query.toLowerCase().includes('2024') || query === '') {
+      if (term.toLowerCase().includes('che') || term.toLowerCase().includes('2024') || term === '') {
         setResultWithDocs(MOCK_RESULT)
       } else {
         setNotFound(true)
       }
     } finally {
       setSearching(false)
+      onSearchingChange?.(false)
     }
   }
 
@@ -116,30 +146,14 @@ export function CheckinPortaria() {
   }
 
   return (
-    <PageLayout
-      header={
-        <AppHeader title="Check-in na Portaria" subtitle="Validar entrada de veículos" showBack backPath="/menu" />
-      }
-    >
-      <div className="space-y-4 pb-4">
-        {/* Busca */}
-        <Card>
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Buscar Agendamento</h3>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Placa, NF ou número do agendamento"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              leftIcon={<Search size={16} />}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1"
-            />
-            <Button onClick={handleSearch} loading={searching} icon={<Search size={16} />} className="shrink-0">
-              Buscar
-            </Button>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Tente: CHE3634 · AGD-2024-0003 · NF-0012345</p>
-        </Card>
+    <div className="space-y-4 pb-4">
+        {embedded && !query.trim() && !result && !searching && (
+          <Card className="border border-dashed border-gray-200 bg-gray-50/50">
+            <p className="text-sm text-gray-500 text-center py-4">
+              Use o filtro principal acima para buscar e fazer check-in
+            </p>
+          </Card>
+        )}
 
         {/* Resultado */}
         {notFound && (
@@ -193,6 +207,29 @@ export function CheckinPortaria() {
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="p-2.5 bg-gray-50 rounded-xl">
                   <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
+                    <Clock size={11} /> Saída prev.
+                  </p>
+                  <p className="text-xs font-semibold text-gray-800">
+                    {result.agendamento?.dataHoraSaidaPrevista
+                      ? format(new Date(result.agendamento.dataHoraSaidaPrevista), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                      : '—'}
+                  </p>
+                </div>
+                <div className="p-2.5 bg-purple-50 rounded-xl">
+                  <p className="text-xs text-purple-500 mb-0.5 flex items-center gap-1">
+                    <Clock size={11} /> Chegada prev.
+                  </p>
+                  <p className="text-xs font-semibold text-purple-900">
+                    {result.agendamento?.dataHoraChegadaPrevista
+                      ? format(new Date(result.agendamento.dataHoraChegadaPrevista), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="p-2.5 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1">
                     <Truck size={11} /> Placa
                   </p>
                   <p className="text-sm font-bold text-gray-800">
@@ -213,7 +250,12 @@ export function CheckinPortaria() {
                   <User size={14} className="text-gray-400 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500">Motorista</p>
-                    <p className="text-sm font-medium text-gray-800">{result.motorista?.nome}</p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {result.motorista?.nome}
+                      {result.motorista?.telefone && (
+                        <span className="text-xs text-gray-400 font-normal ml-1">· {result.motorista.telefone}</span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -224,12 +266,33 @@ export function CheckinPortaria() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Building2 size={14} className="text-gray-400 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500">Fornecedor</p>
+                    <p className="text-sm font-medium text-gray-800">{result.agendamento?.fornecedor?.nome || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
                   <MapPin size={14} className="text-gray-400 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500">Origem</p>
                     <p className="text-sm font-medium text-gray-800">
                       {result.agendamento?.fazenda?.nome}
                       {result.agendamento?.fazenda?.cidade && ` — ${result.agendamento.fazenda.cidade}/${result.agendamento.fazenda.estado}`}
+                      {result.agendamento?.talhao?.nome && ` · ${result.agendamento.talhao.nome}`}
+                      {result.agendamento?.localEmbarque?.nome && ` · ${result.agendamento.localEmbarque.nome}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TreePine size={14} className="text-gray-400 shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-500">Carga</p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {result.agendamento?.tipoMadeira || '—'}
+                      {result.agendamento?.quantidadePrevistaM3 != null && (
+                        <span> · {result.agendamento.quantidadePrevistaM3} m³</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -308,7 +371,6 @@ export function CheckinPortaria() {
             )}
           </>
         )}
-      </div>
-    </PageLayout>
+    </div>
   )
 }

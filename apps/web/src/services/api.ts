@@ -71,6 +71,7 @@ export const documentosService = {
 
 // Portaria
 export const portariaService = {
+  listAgendamentos: (params?: object) => api.get('/api/portaria/agendamentos', { params }),
   buscar: (q: string) => api.get('/api/portaria/buscar', { params: { q } }),
   checkin: (viagemId: string) => api.post(`/api/portaria/${viagemId}/checkin`),
   liberar: (viagemId: string) => api.post(`/api/portaria/${viagemId}/liberar`),
