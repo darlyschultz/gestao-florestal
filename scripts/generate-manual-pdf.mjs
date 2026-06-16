@@ -2,16 +2,39 @@
  * Gera PDF do manual a partir do Markdown + screenshots.
  * Uso: node scripts/generate-manual-pdf.mjs
  */
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir, access } from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { chromium } from 'playwright'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
-const MD_PATH = path.join(ROOT, 'docs/MANUAL_DE_USO.md')
-const OUT_DIR = path.join(ROOT, 'docs/manual')
+const DOCS_DIR = path.join(ROOT, 'docs')
+const MD_PATH = path.join(DOCS_DIR, 'MANUAL_DE_USO.md')
+const OUT_DIR = path.join(DOCS_DIR, 'manual')
 const OUT_PDF = path.join(OUT_DIR, 'MANUAL_DE_USO.pdf')
+
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }
+
+/** Converte caminhos do markdown (relativos a docs/) em data URLs base64. */
+async function embedImagesAsBase64(md) {
+  const re = /!\[([^\]]*)\]\(([^)]+)\)/g
+  let out = md
+  for (const [, alt, relPath] of md.matchAll(re)) {
+    if (relPath.startsWith('data:')) continue
+
+    const absPath = path.isAbsolute(relPath) ? relPath : path.join(DOCS_DIR, relPath)
+    await access(absPath)
+
+    const buf = await readFile(absPath)
+    const ext = path.extname(absPath).slice(1).toLowerCase()
+    const mime = MIME[ext] || 'image/png'
+    const dataUrl = `data:${mime};base64,${buf.toString('base64')}`
+
+    out = out.replace(`![${alt}](${relPath})`, `![${alt}](${dataUrl})`)
+  }
+  return out
+}
 
 function mdToHtml(md) {
   let html = md
@@ -69,7 +92,8 @@ function mdToHtml(md) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })
-  const md = await readFile(MD_PATH, 'utf-8')
+  const mdRaw = await readFile(MD_PATH, 'utf-8')
+  const md = await embedImagesAsBase64(mdRaw)
   const body = mdToHtml(md)
 
   const html = `<!DOCTYPE html>
@@ -137,7 +161,21 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
-  await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle' })
+  await page.setContent(html, { waitUntil: 'load' })
+  await page.evaluate(async () => {
+    const imgs = Array.from(document.querySelectorAll('img'))
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise((resolve, reject) => {
+                img.onload = resolve
+                img.onerror = () => reject(new Error(`Falha ao carregar: ${img.alt}`))
+              }),
+      ),
+    )
+  })
   await page.pdf({
     path: OUT_PDF,
     format: 'A4',
