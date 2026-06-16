@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+apps/api/prisma/dev.db
+apps/api/dev.db
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+backups/
+*.local
+.DS_Store
+*.log

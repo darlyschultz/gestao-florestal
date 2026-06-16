@@ -1,0 +1,684 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// npm run db:seed → tsx prisma/seed.ts
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Perfis e permissões ───────────────────────────────────────────────────
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions Permission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id         String   @id @default(uuid())
+  roleId     String
+  module     String
+  canView    Boolean  @default(false)
+  canCreate  Boolean  @default(false)
+  canEdit    Boolean  @default(false)
+  canDelete  Boolean  @default(false)
+  canApprove Boolean  @default(false)
+  canBlock   Boolean  @default(false)
+  canExport  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module])
+  @@map("permissions")
+}
+
+// ─── Configurações do sistema ──────────────────────────────────────────────
+
+model SystemSettings {
+  id                           String   @id @default(uuid())
+  companyName                  String   @default("Sistema de Rastreamento Florestal")
+  unitName                     String   @default("Fábrica Verde")
+  unitCnpj                     String?
+  unitAddress                  String?
+  factoryLatitude              Float?
+  factoryLongitude             Float?
+  factoryGeofenceRadiusMeters  Float    @default(500)
+  boardingGeofenceRadiusMeters Float    @default(300)
+  weightTolerancePercent       Float    @default(5)
+  weightToleranceKg            Float    @default(500)
+  stopAlertMinutes             Int      @default(30)
+  delayAlertMinutes            Int      @default(60)
+  scheduleIntervalMinutes      Int      @default(15)
+  maxTrucksPerSlot             Int      @default(3)
+  requireNf                    Boolean  @default(true)
+  requireMdfe                  Boolean  @default(true)
+  requireLoadingOrder          Boolean  @default(true)
+  requireBoardingLocation      Boolean  @default(true)
+  requireGpsTracking           Boolean  @default(true)
+  allowManualGateCheckin       Boolean  @default(true)
+  allowManualBlock             Boolean  @default(true)
+  operationalAlertEmail        String?
+  gateOpenTime                 String?  @default("06:00")
+  gateCloseTime                String?  @default("22:00")
+  notifyEmail                  Boolean  @default(true)
+  notifySystem                 Boolean  @default(true)
+  notifyPush                   Boolean  @default(false)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ─── Usuários ──────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(uuid())
+  nome             String
+  email            String    @unique
+  senha            String
+  perfil           String    // legado: admin | transportador | motorista | portaria | operacao | gestor
+  roleId           String?
+  telefone         String?
+  cargo            String?
+  avatar           String?
+  temaPreferido    String    @default("claro")
+  notificacoesEmail    Boolean @default(true)
+  notificacoesPush     Boolean @default(true)
+  notificacoesSistema  Boolean @default(true)
+  ativo            Boolean   @default(true)
+  transportadoraId String?
+  unidadeId        String?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  role           Role?           @relation(fields: [roleId], references: [id])
+  transportadora Transportadora? @relation(fields: [transportadoraId], references: [id])
+  unidade        Unidade?        @relation(fields: [unidadeId], references: [id])
+  agendamentos   Agendamento[]
+  eventos        EventoViagem[]
+  checkins       PortariaCheckin[]
+  pesagens       Pesagem[]
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+// ─── Unidade / Fábrica ─────────────────────────────────────────────────────
+
+model Unidade {
+  id              String   @id @default(uuid())
+  nome            String
+  cnpj            String?
+  endereco        String?
+  municipio       String?
+  uf              String?
+  latitude        Float?
+  longitude       Float?
+  raioCercaMetros Float    @default(500)
+  active          Boolean  @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users              User[]
+  docas              Doca[]
+  balancas           Balanca[]
+  janelasAgendamento JanelaAgendamento[]
+
+  @@map("unidades")
+}
+
+// ─── Cadastros base ────────────────────────────────────────────────────────
+
+model Transportadora {
+  id               String    @id @default(uuid())
+  razaoSocial      String?
+  nome             String
+  nomeFantasia     String?
+  cnpj             String    @unique
+  inscricaoEstadual String?
+  telefone         String?
+  email            String?
+  responsavel      String?
+  active           Boolean   @default(true)
+  ativo            Boolean   @default(true) // legado
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  users        User[]
+  motoristas   Motorista[]
+  veiculos     Veiculo[]
+  agendamentos Agendamento[]
+  viagens      Viagem[]
+
+  @@map("transportadoras")
+}
+
+model Motorista {
+  id               String    @id @default(uuid())
+  nome             String
+  cpf              String    @unique
+  cnh              String
+  categoriaCnh     String
+  validadeCnh      DateTime
+  telefone         String?
+  email            String?
+  transportadoraId String
+  active           Boolean   @default(true)
+  ativo            Boolean   @default(true) // legado
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  transportadora Transportadora @relation(fields: [transportadoraId], references: [id])
+  agendamentos   Agendamento[]
+  viagens        Viagem[]
+  posicoes       PosicaoViagem[]
+
+  @@map("motoristas")
+}
+
+model TipoVeiculo {
+  id              String   @id @default(uuid())
+  codigo          String   @unique
+  descricao       String
+  capacidadeM3    Float?
+  capacidadeKg    Float?
+  active          Boolean  @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  veiculos Veiculo[]
+
+  @@map("tipos_veiculo")
+}
+
+model Veiculo {
+  id                String    @id @default(uuid())
+  placa             String    @unique
+  placaCarreta      String?
+  tipo              String    // legado: truck | bitrem | rodotrem | carreta
+  tipoVeiculoId     String?
+  marca             String?
+  modelo            String?
+  anoFabricacao     Int?
+  capacidadeM3      Float?
+  capacidadeKg      Float?
+  transportadoraId  String?
+  rastreadorId      String?
+  active            Boolean   @default(true)
+  ativo             Boolean   @default(true) // legado
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tipoVeiculo    TipoVeiculo?    @relation(fields: [tipoVeiculoId], references: [id])
+  transportadora Transportadora? @relation(fields: [transportadoraId], references: [id])
+  agendamentos   Agendamento[]
+  viagens        Viagem[]
+
+  @@map("veiculos")
+}
+
+model Fornecedor {
+  id           String    @id @default(uuid())
+  razaoSocial  String?
+  nome         String
+  nomeFantasia String?
+  cnpj         String    @unique
+  municipio    String?
+  uf           String?
+  telefone     String?
+  email        String?
+  active       Boolean   @default(true)
+  ativo        Boolean   @default(true) // legado
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  fazendas     Fazenda[]
+  agendamentos Agendamento[]
+
+  @@map("fornecedores")
+}
+
+model Fazenda {
+  id              String    @id @default(uuid())
+  nome            String
+  fornecedorId    String
+  municipio       String?
+  uf              String?
+  cidade          String?   // legado
+  estado          String?   // legado
+  latitude        Float?
+  longitude       Float?
+  raioCercaMetros Float     @default(300)
+  active          Boolean   @default(true)
+  ativo           Boolean   @default(true) // legado
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fornecedor   Fornecedor @relation(fields: [fornecedorId], references: [id])
+  talhoes      Talhao[]
+  agendamentos Agendamento[]
+
+  @@map("fazendas")
+}
+
+model TipoMadeira {
+  id              String   @id @default(uuid())
+  codigo          String   @unique
+  descricao       String
+  unidadeMedida   String   @default("m³")
+  active          Boolean  @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  talhoes Talhao[]
+
+  @@map("tipos_madeira")
+}
+
+model Talhao {
+  id            String    @id @default(uuid())
+  fazendaId     String
+  codigo        String?
+  nome          String
+  descricao     String?
+  tipoMadeiraId String?
+  tipoMadeira   String?   // legado texto livre
+  areaHa        Float?
+  latitude      Float?
+  longitude     Float?
+  active        Boolean   @default(true)
+  ativo         Boolean   @default(true) // legado
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  fazendaRef   Fazenda      @relation(fields: [fazendaId], references: [id])
+  tipoMadeiraRef TipoMadeira? @relation(fields: [tipoMadeiraId], references: [id])
+  locaisEmbarque LocalEmbarque[]
+  agendamentos   Agendamento[]
+
+  @@map("talhoes")
+}
+
+model LocalEmbarque {
+  id          String    @id @default(uuid())
+  nome        String
+  talhaoId    String
+  latitude    Float
+  longitude   Float
+  raioMetros  Float     @default(200)
+  active      Boolean   @default(true)
+  ativo       Boolean   @default(true) // legado
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  talhao       Talhao @relation(fields: [talhaoId], references: [id])
+  agendamentos Agendamento[]
+
+  @@map("locais_embarque")
+}
+
+model Doca {
+  id              String    @id @default(uuid())
+  unidadeId       String
+  codigo          String
+  descricao       String?
+  tipoMaterial    String?
+  active          Boolean   @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  unidade Unidade @relation(fields: [unidadeId], references: [id])
+
+  @@unique([unidadeId, codigo])
+  @@map("docas")
+}
+
+model Balanca {
+  id          String    @id @default(uuid())
+  unidadeId   String
+  codigo      String
+  descricao   String?
+  active      Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  unidade Unidade @relation(fields: [unidadeId], references: [id])
+
+  @@unique([unidadeId, codigo])
+  @@map("balancas")
+}
+
+model MotivoBloqueio {
+  id          String    @id @default(uuid())
+  codigo      String    @unique
+  descricao   String
+  tipo        String    @default("portaria") // portaria | viagem | documento
+  active      Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("motivos_bloqueio")
+}
+
+model JanelaAgendamento {
+  id                    String    @id @default(uuid())
+  unidadeId             String
+  diaSemana             Int       // 0=dom .. 6=sab
+  horarioInicial        String
+  horarioFinal          String
+  intervaloMinutos      Int       @default(15)
+  capacidadePorHorario  Int       @default(3)
+  active                Boolean   @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  unidade Unidade @relation(fields: [unidadeId], references: [id])
+
+  @@map("janelas_agendamento")
+}
+
+// ─── Campos dinâmicos ──────────────────────────────────────────────────────
+
+model CustomField {
+  id           String    @id @default(uuid())
+  module       String
+  screen       String
+  label        String
+  technicalKey String
+  fieldType    String    // texto | numero | decimal | data | datetime | select | multiselect | checkbox | upload | coordenada | observacao
+  required     Boolean   @default(false)
+  readonly     Boolean   @default(false)
+  showWeb      Boolean   @default(true)
+  showMobile   Boolean   @default(true)
+  displayOrder Int       @default(0)
+  placeholder  String?
+  helpText     String?
+  defaultValue String?
+  minValue     String?
+  maxValue     String?
+  isSystem     Boolean   @default(false)
+  active       Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  options CustomFieldOption[]
+  values  CustomFieldValue[]
+
+  @@unique([screen, technicalKey])
+  @@map("custom_fields")
+}
+
+model CustomFieldOption {
+  id            String    @id @default(uuid())
+  customFieldId String
+  label         String
+  value         String
+  displayOrder  Int       @default(0)
+  active        Boolean   @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@map("custom_field_options")
+}
+
+model CustomFieldValue {
+  id            String   @id @default(uuid())
+  customFieldId String
+  entityType    String
+  entityId      String
+  value         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldId, entityType, entityId])
+  @@map("custom_field_values")
+}
+
+// ─── Auditoria ─────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  entityType String
+  entityId   String?
+  action     String
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ─── Operação florestal (existentes) ───────────────────────────────────────
+
+model Agendamento {
+  id                      String    @id @default(uuid())
+  numero                  String    @unique
+  transportadoraId        String
+  motoristaId             String
+  veiculoId               String
+  fornecedorId            String
+  fazendaId               String
+  talhaoId                String
+  localEmbarqueId         String?
+  tipoMadeira             String
+  quantidadePrevistaM3    Float
+  dataHoraSaidaPrevista   DateTime
+  dataHoraChegadaPrevista DateTime
+  observacoes             String?
+  status                  String    @default("agendado")
+  userId                  String
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  transportadora Transportadora @relation(fields: [transportadoraId], references: [id])
+  motorista      Motorista      @relation(fields: [motoristaId], references: [id])
+  veiculo        Veiculo        @relation(fields: [veiculoId], references: [id])
+  fornecedor     Fornecedor     @relation(fields: [fornecedorId], references: [id])
+  fazenda        Fazenda        @relation(fields: [fazendaId], references: [id])
+  talhao         Talhao         @relation(fields: [talhaoId], references: [id])
+  localEmbarque  LocalEmbarque? @relation(fields: [localEmbarqueId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+  viagem         Viagem?
+
+  @@map("agendamentos")
+}
+
+model Viagem {
+  id                  String   @id @default(uuid())
+  numero              String   @unique
+  agendamentoId       String   @unique
+  transportadoraId    String
+  motoristaId         String
+  veiculoId           String
+  status              String   @default("agendado")
+  latEmbarque         Float?
+  lngEmbarque         Float?
+  latAtual            Float?
+  lngAtual            Float?
+  distanciaRestanteKm Float?
+  tempoRestanteMin    Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  agendamento    Agendamento       @relation(fields: [agendamentoId], references: [id])
+  transportadora Transportadora    @relation(fields: [transportadoraId], references: [id])
+  motorista      Motorista         @relation(fields: [motoristaId], references: [id])
+  veiculo        Veiculo           @relation(fields: [veiculoId], references: [id])
+  documentos     DocumentoViagem[]
+  posicoes       PosicaoViagem[]
+  alertas        AlertaViagem[]
+  eventos        EventoViagem[]
+  checkins       PortariaCheckin[]
+  filaPatio      FilaPatio[]
+  pesagens       Pesagem[]
+  descargas      Descarga[]
+
+  @@map("viagens")
+}
+
+model DocumentoViagem {
+  id         String   @id @default(uuid())
+  viagemId   String
+  tipo       String
+  numero     String?
+  arquivo    String?
+  status     String   @default("pendente")
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+
+  @@map("documentos_viagem")
+}
+
+model PosicaoViagem {
+  id          String   @id @default(uuid())
+  viagemId    String
+  motoristaId String
+  latitude    Float
+  longitude   Float
+  velocidade  Float?
+  createdAt   DateTime @default(now())
+
+  viagem    Viagem    @relation(fields: [viagemId], references: [id])
+  motorista Motorista @relation(fields: [motoristaId], references: [id])
+
+  @@map("posicoes_viagem")
+}
+
+model AlertaViagem {
+  id         String   @id @default(uuid())
+  viagemId   String
+  tipo       String
+  severidade String
+  mensagem   String
+  lido       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+
+  @@map("alertas_viagem")
+}
+
+model EventoViagem {
+  id             String   @id @default(uuid())
+  viagemId       String
+  userId         String?
+  tipo           String
+  descricao      String
+  statusAnterior String?
+  statusNovo     String?
+  latitude       Float?
+  longitude      Float?
+  createdAt      DateTime @default(now())
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@map("eventos_viagem")
+}
+
+model PortariaCheckin {
+  id        String   @id @default(uuid())
+  viagemId  String
+  userId    String
+  acao      String
+  motivo    String?
+  createdAt DateTime @default(now())
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("portaria_checkins")
+}
+
+model FilaPatio {
+  id               String   @id @default(uuid())
+  viagemId         String
+  posicao          Int
+  status           String   @default("aguardando_portaria")
+  tempoEstimadoMin Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+
+  @@map("fila_patio")
+}
+
+model Pesagem {
+  id            String   @id @default(uuid())
+  viagemId      String
+  tipo          String
+  ticketBalanca String?
+  placa         String
+  pesoBrutoKg   Float
+  pesoTaraKg    Float?
+  pesoLiquidoKg Float?
+  operador      String?
+  balanca       String?
+  userId        String
+  createdAt     DateTime @default(now())
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("pesagens")
+}
+
+model Descarga {
+  id          String   @id @default(uuid())
+  viagemId    String
+  doca        String
+  material    String?
+  responsavel String?
+  observacoes String?
+  status      String   @default("liberada")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  viagem Viagem @relation(fields: [viagemId], references: [id])
+
+  @@map("descargas")
+}
