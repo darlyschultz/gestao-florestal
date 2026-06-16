@@ -1,5 +1,6 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { prisma } from '../lib/prisma'
 import { portariaAgendamentoListInclude, portariaCheckinInclude } from '../lib/queryIncludes'
 import type { Prisma } from '@prisma/client'
@@ -77,6 +78,16 @@ function applyStatusFilter(
 
 router.use(authMiddleware)
 
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return next()
+  res.on('finish', () => {
+    if (res.statusCode < 400) invalidateCachePrefix('portaria:')
+  })
+  next()
+})
+
+router.use(httpCacheMiddleware(8, 'portaria:'))
+
 router.get('/agendamentos', async (req: AuthRequest, res: Response) => {
   try {
     const {
@@ -135,7 +146,7 @@ router.get('/agendamentos', async (req: AuthRequest, res: Response) => {
       take: LIST_LIMIT,
     })
 
-    res.set('Cache-Control', 'private, max-age=5')
+    res.set('Cache-Control', 'private, max-age=8')
     return res.json(agendamentos)
   } catch (error) {
     console.error(error)

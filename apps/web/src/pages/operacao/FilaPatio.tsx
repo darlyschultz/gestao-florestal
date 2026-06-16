@@ -71,14 +71,12 @@ function DetailRow({ label, value }: { label: string; value?: React.ReactNode })
 function FilaItemCard({
   item,
   expanded,
-  loadingDetail,
   onToggle,
   onUpdateStatus,
   onVerViagem,
 }: {
   item: FilaItemExtended
   expanded: boolean
-  loadingDetail?: boolean
   onToggle: () => void
   onUpdateStatus: (id: string, status: string) => void
   onVerViagem: (id: string) => void
@@ -164,10 +162,6 @@ function FilaItemCard({
 
       {expanded && (
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
-          {loadingDetail ? (
-            <div className="py-8 text-center text-sm text-gray-400">Carregando detalhes...</div>
-          ) : (
-          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Veículo e transporte */}
             <div className="bg-gray-50 rounded-xl p-3">
@@ -327,8 +321,6 @@ function FilaItemCard({
               </Button>
             )}
           </div>
-          </>
-          )}
         </div>
       )}
     </Card>
@@ -341,12 +333,9 @@ export function FilaPatio() {
   const [resumo, setResumo] = useState<FilaResumo | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null)
-  const [detalhesCarregados, setDetalhesCarregados] = useState<Set<string>>(new Set())
 
   function loadFila() {
     setLoading(true)
-    setDetalhesCarregados(new Set())
     filaService.list()
       .then((res) => {
         const data = res.data
@@ -366,28 +355,6 @@ export function FilaPatio() {
   }
 
   useEffect(() => { loadFila() }, [])
-
-  async function handleToggle(item: FilaItemExtended) {
-    if (expandedId === item.id) {
-      setExpandedId(null)
-      return
-    }
-
-    setExpandedId(item.id)
-
-    if (detalhesCarregados.has(item.id)) return
-
-    setLoadingDetailId(item.id)
-    try {
-      const res = await filaService.get(item.id)
-      setFila((prev) => prev.map((f) => (f.id === item.id ? res.data : f)))
-      setDetalhesCarregados((prev) => new Set(prev).add(item.id))
-    } catch {
-      // mantém dados resumidos do card
-    } finally {
-      setLoadingDetailId(null)
-    }
-  }
 
   async function handleUpdateStatus(id: string, status: string) {
     try {
@@ -467,8 +434,7 @@ export function FilaPatio() {
               key={item.id}
               item={item}
               expanded={expandedId === item.id}
-              loadingDetail={loadingDetailId === item.id}
-              onToggle={() => handleToggle(item)}
+              onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
               onUpdateStatus={handleUpdateStatus}
               onVerViagem={(id) => navigate(`/viagens/${id}`)}
             />

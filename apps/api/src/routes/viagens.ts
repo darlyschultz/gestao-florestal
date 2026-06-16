@@ -1,5 +1,6 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { prisma } from '../lib/prisma'
 import { viagemListInclude } from '../lib/queryIncludes'
 
@@ -28,6 +29,16 @@ const includeDetail = {
 
 router.use(authMiddleware)
 
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return next()
+  res.on('finish', () => {
+    if (res.statusCode < 400) invalidateCachePrefix('viagens:')
+  })
+  next()
+})
+
+router.use(httpCacheMiddleware(8, 'viagens:'))
+
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.query
@@ -42,7 +53,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       take: 100,
     })
 
-    res.set('Cache-Control', 'private, max-age=5')
     return res.json(viagens)
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar viagens' })

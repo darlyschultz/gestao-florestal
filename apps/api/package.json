@@ -16,9 +16,6 @@
   },
   "dependencies": {
     "@gestao-florestal/shared": "*",
-    "@neondatabase/serverless": "^0.9.5",
-    "@prisma/adapter-neon": "^5.12.1",
-    "@prisma/adapter-pg": "^5.12.1",
     "@prisma/client": "^5.12.1",
     "@vercel/blob": "^0.23.4",
     "bcryptjs": "^2.4.3",

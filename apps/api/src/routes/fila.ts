@@ -1,5 +1,6 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { prisma } from '../lib/prisma'
 
 const router = Router()
@@ -31,6 +32,7 @@ const viagemIncludeDetail = {
   },
 }
 
+/** Dados suficientes para card + expandir sem 2ª request. */
 const viagemIncludeList = {
   id: true,
   numero: true,
@@ -38,7 +40,28 @@ const viagemIncludeList = {
   motorista: { select: { id: true, nome: true, telefone: true } },
   veiculo: { select: { id: true, placa: true, tipo: true, placaCarreta: true } },
   transportadora: { select: { id: true, nome: true } },
-  documentos: { select: { id: true, status: true, tipo: true } },
+  documentos: { select: { id: true, status: true, tipo: true, numero: true } },
+  pesagens: {
+    select: { tipo: true, pesoBrutoKg: true, pesoLiquidoKg: true, ticketBalanca: true, createdAt: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: 2,
+  },
+  descargas: {
+    select: { doca: true, material: true, status: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+  },
+  checkins: {
+    select: { acao: true, createdAt: true, motivo: true, user: { select: { nome: true } } },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+  },
+  alertas: {
+    where: { lido: false },
+    select: { tipo: true, severidade: true, mensagem: true },
+    orderBy: { createdAt: 'desc' as const },
+    take: 3,
+  },
   agendamento: {
     select: {
       numero: true,
@@ -49,6 +72,8 @@ const viagemIncludeList = {
       transportadora: { select: { id: true, nome: true } },
       fazenda: { select: { id: true, nome: true, cidade: true, estado: true } },
       fornecedor: { select: { id: true, nome: true } },
+      talhao: { select: { id: true, nome: true } },
+      localEmbarque: { select: { id: true, nome: true } },
     },
   },
 }
@@ -75,14 +100,20 @@ function buildResumo(
     ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length)
     : 0
 
-  return {
-    total: fila.length,
-    ...porStatus,
-    tempoMedioEstimado,
-  }
+  return { total: fila.length, ...porStatus, tempoMedioEstimado }
 }
 
 router.use(authMiddleware)
+
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return next()
+  res.on('finish', () => {
+    if (res.statusCode < 400) invalidateCachePrefix('fila:')
+  })
+  next()
+})
+
+router.use(httpCacheMiddleware(8, 'fila:'))
 
 router.get('/resumo', async (_req: AuthRequest, res: Response) => {
   try {
@@ -90,8 +121,6 @@ router.get('/resumo', async (_req: AuthRequest, res: Response) => {
       where: { status: { not: 'concluido' } },
       select: { status: true, tempoEstimadoMin: true },
     })
-
-    res.set('Cache-Control', 'private, max-age=5')
     return res.json(buildResumo(fila))
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar resumo da fila' })
@@ -108,10 +137,7 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
       orderBy: [{ status: 'asc' }, { posicao: 'asc' }],
     })
 
-    const resumo = buildResumo(fila)
-
-    res.set('Cache-Control', 'private, max-age=5')
-    return res.json({ items: fila, resumo })
+    return res.json({ items: fila, resumo: buildResumo(fila) })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao buscar fila' })
@@ -142,7 +168,7 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
       where: { id: req.params.id },
       data: { status },
       include: {
-        viagem: { include: viagemIncludeDetail },
+        viagem: { select: viagemIncludeList },
       },
     })
 
