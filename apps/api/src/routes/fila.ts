@@ -32,6 +32,9 @@ const viagemIncludeDetail = {
 }
 
 const viagemIncludeList = {
+  id: true,
+  numero: true,
+  status: true,
   motorista: { select: { id: true, nome: true, telefone: true } },
   veiculo: { select: { id: true, placa: true, tipo: true, placaCarreta: true } },
   transportadora: { select: { id: true, nome: true } },
@@ -41,11 +44,42 @@ const viagemIncludeList = {
       numero: true,
       tipoMadeira: true,
       quantidadePrevistaM3: true,
+      dataHoraSaidaPrevista: true,
       dataHoraChegadaPrevista: true,
+      transportadora: { select: { id: true, nome: true } },
       fazenda: { select: { id: true, nome: true, cidade: true, estado: true } },
       fornecedor: { select: { id: true, nome: true } },
     },
   },
+}
+
+function buildResumo(
+  fila: Array<{ status: string; tempoEstimadoMin: number | null }>,
+) {
+  const porStatus = {
+    aguardando_portaria: 0,
+    aguardando_balanca: 0,
+    aguardando_descarga: 0,
+  }
+
+  for (const item of fila) {
+    if (item.status in porStatus) {
+      porStatus[item.status as keyof typeof porStatus]++
+    }
+  }
+
+  const tempos = fila
+    .map((f) => f.tempoEstimadoMin)
+    .filter((t): t is number => t != null)
+  const tempoMedioEstimado = tempos.length
+    ? Math.round(tempos.reduce((a, b) => a + b, 0) / tempos.length)
+    : 0
+
+  return {
+    total: fila.length,
+    ...porStatus,
+    tempoMedioEstimado,
+  }
 }
 
 router.use(authMiddleware)
@@ -54,33 +88,11 @@ router.get('/resumo', async (_req: AuthRequest, res: Response) => {
   try {
     const fila = await prisma.filaPatio.findMany({
       where: { status: { not: 'concluido' } },
-      select: { status: true, tempoEstimadoMin: true, createdAt: true },
+      select: { status: true, tempoEstimadoMin: true },
     })
 
-    const porStatus = {
-      aguardando_portaria: 0,
-      aguardando_balanca: 0,
-      aguardando_descarga: 0,
-    }
-
-    for (const item of fila) {
-      if (item.status in porStatus) {
-        porStatus[item.status as keyof typeof porStatus]++
-      }
-    }
-
-    const tempos = fila
-      .map((f: { tempoEstimadoMin: number | null }) => f.tempoEstimadoMin)
-      .filter((t): t is number => t != null)
-    const tempoMedioEstimado = tempos.length
-      ? Math.round(tempos.reduce((a: number, b: number) => a + b, 0) / tempos.length)
-      : 0
-
-    return res.json({
-      total: fila.length,
-      ...porStatus,
-      tempoMedioEstimado,
-    })
+    res.set('Cache-Control', 'private, max-age=5')
+    return res.json(buildResumo(fila))
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar resumo da fila' })
   }
@@ -91,13 +103,15 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
     const fila = await prisma.filaPatio.findMany({
       where: { status: { not: 'concluido' } },
       include: {
-        viagem: { include: viagemIncludeList },
+        viagem: { select: viagemIncludeList },
       },
       orderBy: [{ status: 'asc' }, { posicao: 'asc' }],
     })
 
+    const resumo = buildResumo(fila)
+
     res.set('Cache-Control', 'private, max-age=5')
-    return res.json(fila)
+    return res.json({ items: fila, resumo })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao buscar fila' })

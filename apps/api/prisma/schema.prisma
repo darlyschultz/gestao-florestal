@@ -653,7 +653,7 @@ model FilaPatio {
 
   viagem Viagem @relation(fields: [viagemId], references: [id])
 
-  @@index([status])
+  @@index([status, posicao])
   @@map("fila_patio")
 }
 
