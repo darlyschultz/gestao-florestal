@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manual de Uso — Gestão Florestal</title>
+  <style>
+    @page { margin: 18mm 16mm; size: A4; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #1f2937;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    h1 { font-size: 22pt; color: #14532d; border-bottom: 3px solid #16a34a; padding-bottom: 8px; margin-top: 0; page-break-after: avoid; }
+    h2 { font-size: 15pt; color: #166534; margin-top: 28px; page-break-after: avoid; border-left: 4px solid #22c55e; padding-left: 10px; }
+    h3 { font-size: 12pt; color: #374151; margin-top: 18px; page-break-after: avoid; }
+    h4 { font-size: 11pt; color: #4b5563; }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0 8px 20px; padding: 0; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; page-break-inside: avoid; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; }
+    th { background: #f0fdf4; color: #14532d; font-weight: 600; }
+    tr:nth-child(even) td { background: #f9fafb; }
+    figure { margin: 16px 0; page-break-inside: avoid; text-align: center; }
+    figure img { max-width: 280px; width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    figcaption { font-size: 9pt; color: #6b7280; margin-top: 6px; font-style: italic; }
+    blockquote { background: #f0fdf4; border-left: 4px solid #22c55e; margin: 12px 0; padding: 8px 12px; color: #374151; font-size: 10pt; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 9.5pt; }
+    pre { background: #1f2937; color: #f9fafb; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 9pt; page-break-inside: avoid; }
+    pre code { background: none; color: inherit; padding: 0; }
+    hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+    a { color: #15803d; }
+    strong { color: #111827; }
+    .cover {
+      text-align: center;
+      padding: 60px 20px 40px;
+      page-break-after: always;
+    }
+    .cover h1 { border: none; font-size: 26pt; }
+    .cover p { color: #6b7280; font-size: 12pt; }
+    .cover .logo { font-size: 48pt; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="logo">🌲</div>
+    <h1>Sistema de Rastreamento Florestal</h1>
+    <p><strong>Manual de Uso</strong> · Versão 1.0.0</p>
+    <p>gestao-florestal-api.vercel.app</p>
+    <p>Junho/2026</p>
+  </div>
+  <h1>Manual de Uso — Sistema de Rastreamento Florestal</h1>
+<p><strong>Versão:</strong> 1.0.0  <br><strong>URL de produção:</strong> https://gestao-florestal-api.vercel.app  <br><strong>Última atualização:</strong> junho/2026</p>
+<hr>
+<h2 id="Sumário">Sumário</h2>
+<li><a href="#1-introdução">Introdução</a></li>
+<li><a href="#2-acesso-ao-sistema">Acesso ao sistema</a></li>
+<li><a href="#3-perfis-de-usuário">Perfis de usuário</a></li>
+<li><a href="#4-menu-principal">Menu principal</a></li>
+<li><a href="#5-agendamento-de-transporte">Agendamento de transporte</a></li>
+<li><a href="#6-entrega-de-madeira-viagens">Entrega de madeira (viagens)</a></li>
+<li><a href="#7-portaria">Portaria</a></li>
+<li><a href="#8-fila--pátio">Fila / Pátio</a></li>
+<li><a href="#9-dashboard-e-relatórios">Dashboard e relatórios</a></li>
+<li><a href="#10-cadastros-e-configurações">Cadastros e configurações</a></li>
+<li><a href="#11-fluxo-operacional-completo">Fluxo operacional completo</a></li>
+<li><a href="#12-perguntas-frequentes">Perguntas frequentes</a></li>
+<hr>
+<h2 id="1. Introdução">1. Introdução</h2>
+<p>O <strong>Sistema de Rastreamento Florestal</strong> gerencia o ciclo completo de transporte de madeira: desde o agendamento na origem até a chegada na fábrica, passando por portaria, fila de pátio, pesagem e descarga.</p>
+<p>O sistema foi projetado para uso em <strong>celular e tablet</strong> (operação em campo e portaria), mas também funciona em desktop.</p>
+<h3>Módulos disponíveis</h3>
+<table><tr><th>Módulo</th><th>Função principal</th></tr><tr><td>Agendamento</td><td>Programar transportes de madeira</td></tr><tr><td>Entrega de Madeira</td><td>Acompanhar viagens em andamento</td></tr><tr><td>Portaria</td><td>Check-in e liberação de veículos</td></tr><tr><td>Fila / Pátio</td><td>Ordem de espera na unidade</td></tr><tr><td>Dashboard</td><td>Visão operacional em tempo real</td></tr><tr><td>Relatórios</td><td>Indicadores e análises</td></tr><tr><td>Cadastros</td><td>Dados base (frota, fazendas, usuários…)</td></tr><tr><td>Configurações</td><td>Parâmetros do sistema</td></tr></table>
+<hr>
+<h2 id="2. Acesso ao sistema">2. Acesso ao sistema</h2>
+<h3>2.1 Tela de login</h3>
+<p>Abra o endereço do sistema no navegador. A primeira tela é o login.</p>
+<figure><img src="manual/screenshots/01-login.png" alt="Tela de login" /><figcaption>Tela de login</figcaption></figure>
+<p><strong>Passo a passo:</strong></p>
+<li>Informe seu <strong>e-mail</strong> (usuário).</li>
+<li>Informe sua <strong>senha</strong>.</li>
+<li>Opcionalmente marque <strong>Lembrar meu acesso</strong>.</li>
+<li>Toque em <strong>Entrar</strong>.</li>
+<blockquote><strong>Ambiente de demonstração:</strong> a senha padrão dos usuários de teste é <code>123456</code>. Os botões de acesso rápido na parte inferior preenchem o e-mail automaticamente.</blockquote>
+<h3>2.2 Usuários de teste</h3>
+<table><tr><th>Perfil</th><th>E-mail</th><th>O que enxerga</th></tr><tr><td>Administrador</td><td><code>admin@florestal.com</code></td><td>Todos os módulos</td></tr><tr><td>Transportador</td><td><code>transportador@florestal.com</code></td><td>Agendamento e viagens</td></tr><tr><td>Portaria</td><td><code>portaria@florestal.com</code></td><td>Portaria e fila</td></tr><tr><td>Operação</td><td><code>operacao@florestal.com</code></td><td>Fila, dashboard, relatórios</td></tr><tr><td>Gestor</td><td><code>gestor@florestal.com</code></td><td>Cadastros e relatórios</td></tr><tr><td>Motorista</td><td><code>motorista@florestal.com</code></td><td>Viagens (app motorista)</td></tr></table>
+<hr>
+<h2 id="3. Perfis de usuário">3. Perfis de usuário</h2>
+<p>Cada perfil vê apenas os módulos relevantes para sua função. Isso evita confusão e protege dados sensíveis.</p>
+<h3>Administrador — menu completo</h3>
+<figure><img src="manual/screenshots/02-menu-admin.png" alt="Menu administrador" /><figcaption>Menu administrador</figcaption></figure>
+<h3>Transportador — menu reduzido</h3>
+<figure><img src="manual/screenshots/15-menu-transportador.png" alt="Menu transportador" /><figcaption>Menu transportador</figcaption></figure>
+<p>O transportador acessa <strong>Agendamento</strong> e <strong>Entrega de Madeira</strong>, mas não vê Portaria, Fila ou Configurações.</p>
+<hr>
+<h2 id="4. Menu principal">4. Menu principal</h2>
+<p>Após o login você chega ao <strong>Menu Principal</strong>, ponto de partida de todos os módulos.</p>
+<p><strong>Elementos da tela:</strong></p>
+<ul><li><strong>Cabeçalho verde</strong> — nome do usuário e perfil (mobile).</li>
+<li><strong>Cards de módulos</strong> — toque em qualquer card para entrar.</li>
+<li><strong>Badge "Em breve"</strong> — módulos ainda não implementados (Manutenção, Vistoria).</li>
+<li><strong>Ícone de perfil</strong> — acessa dados pessoais.</li>
+<li><strong>Sair</strong> — encerra a sessão.</li>
+</ul>
+<strong>Navegação:</strong>
+<ul><li>Use o botão <strong>← Voltar</strong> no topo das telas internas para retornar ao menu.</li>
+<li>No desktop, a <strong>barra lateral</strong> permanece visível com atalhos.</li>
+</ul>
+<hr>
+<h2 id="5. Agendamento de transporte">5. Agendamento de transporte</h2>
+<blockquote><strong>Quem usa:</strong> Transportador, Administrador</blockquote>
+<h3>5.1 Calendário</h3>
+<figure><img src="manual/screenshots/04-agendamento-calendario.png" alt="Calendário de agendamentos" /><figcaption>Calendário de agendamentos</figcaption></figure>
+<p>O calendário exibe os agendamentos por dia. Toque em um dia ou horário para criar ou visualizar transportes programados.</p>
+<p><strong>Ações disponíveis:</strong></p>
+<ul><li>Navegar entre meses.</li>
+<li>Ver agendamentos existentes (cor/indicador no dia).</li>
+<li>Iniciar <strong>novo agendamento</strong> a partir de um slot livre.</li>
+</ul>
+<h3>5.2 Novo agendamento</h3>
+<figure><img src="manual/screenshots/05-agendamento-novo.png" alt="Formulário novo agendamento" /><figcaption>Formulário novo agendamento</figcaption></figure>
+<p><strong>Passo a passo:</strong></p>
+<li>Menu → <strong>Agendamento de Transporte</strong> → Calendário → selecione data/hora <strong>ou</strong> acesse <strong>Novo Agendamento</strong>.</li>
+<li>Preencha os campos obrigatórios:</li>
+   - <strong>Transportadora</strong>
+   - <strong>Motorista</strong>
+   - <strong>Veículo</strong> (placa)
+   - <strong>Fornecedor</strong> e <strong>Fazenda</strong>
+   - <strong>Talhão</strong>
+   - <strong>Tipo de madeira</strong> e <strong>volume previsto (m³)</strong>
+   - <strong>Data/hora de saída</strong> e <strong>chegada prevista</strong>
+<li>Adicione <strong>observações</strong> se necessário.</li>
+<li>Confirme o agendamento.</li>
+<blockquote>Os cadastros (transportadoras, motoristas, fazendas…) precisam existir previamente em <strong>Cadastros</strong>. Veja a <a href="#10-cadastros-e-configurações">seção 10</a>.</blockquote>
+<h3>5.3 Etapas complementares do agendamento</h3>
+<p>O fluxo completo pode incluir telas adicionais acessíveis pelo menu de agendamento:</p>
+<table><tr><th>Tela</th><th>Função</th></tr><tr><td>Horários</td><td>Consultar janelas disponíveis</td></tr><tr><td>Documentos</td><td>Anexar NF, MDF-e, ordem de carregamento</td></tr><tr><td>Local de embarque</td><td>Definir ponto de carregamento</td></tr><tr><td>Resumo</td><td>Revisar antes de confirmar</td></tr></table>
+<hr>
+<h2 id="6. Entrega de madeira (viagens)">6. Entrega de madeira (viagens)</h2>
+<blockquote><strong>Quem usa:</strong> Todos os perfis operacionais</blockquote>
+<h3>6.1 Lista de viagens</h3>
+<figure><img src="manual/screenshots/06-viagens-lista.png" alt="Lista de viagens" /><figcaption>Lista de viagens</figcaption></figure>
+<p><strong>Passo a passo:</strong></p>
+<li>Menu → <strong>Entrega de Madeira</strong>.</li>
+<li>Use a <strong>barra de busca</strong> para filtrar por número, placa ou motorista.</li>
+<li>Use os <strong>filtros de status</strong> (Todos, Em trânsito, Portaria, etc.).</li>
+<li>Toque em uma viagem para ver o detalhe.</li>
+<p>Cada card mostra:</p>
+<ul><li>Número da viagem (ex.: <code>VGM-2024-0002</code>)</li>
+<li>Placa e tipo do veículo</li>
+<li>Fazenda de origem</li>
+<li>Motorista e horário previsto de saída</li>
+<li>Badge de status colorido</li>
+</ul>
+<h3>6.2 Detalhe da viagem</h3>
+<figure><img src="manual/screenshots/07-viagem-detalhe.png" alt="Detalhe da viagem" /><figcaption>Detalhe da viagem</figcaption></figure>
+<p>A tela de detalhe concentra todas as informações da viagem:</p>
+<ul><li><strong>Linha do tempo</strong> — progresso: Agendado → Carregado → Em trânsito → Portaria → Pesagem → Descarga → Finalizado</li>
+<li><strong>Dados do veículo e motorista</strong></li>
+<li><strong>Origem</strong> (fornecedor, fazenda, talhão)</li>
+<li><strong>Documentos</strong> e status de validação</li>
+<li><strong>Alertas</strong> (desvio de rota, atraso…)</li>
+<li><strong>Atalhos:</strong> Mapa, Alertas, Histórico</li>
+</ul>
+<strong>Ações:</strong>
+<ul><li>Toque em <strong>Ver no mapa</strong> para rastreamento em tempo real.</li>
+<li>Atualize o status quando autorizado (conforme perfil).</li>
+</ul>
+<hr>
+<h2 id="7. Portaria">7. Portaria</h2>
+<blockquote><strong>Quem usa:</strong> Portaria, Administrador</blockquote>
+<p>A portaria é o ponto de controle na chegada dos caminhões. Possui <strong>duas abas</strong>: Agendamentos e Check-in.</p>
+<h3>7.1 Visão geral</h3>
+<figure><img src="manual/screenshots/11-portaria-agendamentos.png" alt="Portaria — aba Agendamentos" /><figcaption>Portaria — aba Agendamentos</figcaption></figure>
+<h3>7.2 Filtro principal (topo da página)</h3>
+<p>No topo da tela de Portaria ficam os filtros que valem para <strong>ambas as abas</strong>:</p>
+<table><tr><th>Campo</th><th>Descrição</th></tr><tr><td><strong>Status</strong> (dropdown)</td><td>Filtra agendamentos por situação. Padrão: <strong>Aguardando check-in</strong></td></tr><tr><td><strong>Busca</strong></td><td>Placa, número da viagem ou agendamento</td></tr></table>
+<strong>Opções de status:</strong>
+<ul><li>Aguardando check-in <em>(padrão — prioridade)</em></li>
+<li>Em trânsito</li>
+<li>Próx. fábrica</li>
+<li>Agendado</li>
+<li>Na portaria+</li>
+<li>Bloqueado</li>
+<li>Finalizado</li>
+<li>Sem viagem</li>
+<li>Todos</li>
+</ul>
+<h3>7.3 Aba Agendamentos</h3>
+<p>Lista os agendamentos conforme filtros aplicados.</p>
+<p><strong>Filtros adicionais (dentro da aba):</strong></p>
+<table><tr><th>Filtro</th><th>Opções</th></tr><tr><td>Período</td><td>Hoje · Amanhã · 7 dias · Todos</td></tr><tr><td>Ordenação</td><td>Chegada prevista · Saída · Placa · Número</td></tr><tr><td>Direção</td><td>Crescente / Decrescente (ícone ⇅)</td></tr></table>
+<strong>Informações em cada card:</strong>
+<ul><li>Placa, motorista, transportadora</li>
+<li>Fazenda, talhão, tipo de madeira, volume (m³)</li>
+<li>Horários de saída e chegada previstos</li>
+<li>Resumo de documentos (válidos / pendentes)</li>
+<li>Status da viagem vinculada</li>
+</ul>
+<strong>Atalho para check-in:</strong> toque no card → o sistema muda para a aba <strong>Check-in</strong> com a busca já preenchida.
+<h3>7.4 Aba Check-in</h3>
+<figure><img src="manual/screenshots/12-portaria-checkin.png" alt="Portaria — aba Check-in" /><figcaption>Portaria — aba Check-in</figcaption></figure>
+<p><strong>Passo a passo do check-in:</strong></p>
+<li>Na aba <strong>Check-in</strong>, digite a <strong>placa</strong>, <strong>número da viagem</strong> ou <strong>agendamento</strong> no campo de busca.</li>
+<li>Toque em <strong>Buscar</strong> (ou selecione um agendamento na aba anterior).</li>
+<li>Revise os dados exibidos:</li>
+   - Veículo, motorista, transportadora
+   - Origem (fazenda, fornecedor)
+   - Documentos (NF, MDF-e, OC…) com status
+<li>Escolha a ação:</li>
+   - <strong>Liberar</strong> — veículo entra na fila de pátio
+   - <strong>Bloquear</strong> — informe o motivo (documento pendente, divergência…)
+<blockquote>Documentos com status <strong>pendente</strong> ou <strong>inválido</strong> aparecem destacados. Avalie antes de liberar.</blockquote>
+<hr>
+<h2 id="8. Fila / Pátio">8. Fila / Pátio</h2>
+<blockquote><strong>Quem usa:</strong> Portaria, Operação, Administrador</blockquote>
+<p>Controla a ordem de espera dos veículos já liberados na portaria.</p>
+<figure><img src="manual/screenshots/13-fila-patio.png" alt="Fila / Pátio — visão geral" /><figcaption>Fila / Pátio — visão geral</figcaption></figure>
+<h3>8.1 Indicadores (KPIs)</h3>
+<table><tr><th>KPI</th><th>Significado</th></tr><tr><td>Total na fila</td><td>Veículos aguardando</td></tr><tr><td>Aguard. Portaria</td><td>Ainda no controle inicial</td></tr><tr><td>Aguard. Balança</td><td>Esperando pesagem</td></tr><tr><td>Aguard. Descarga</td><td>Esperando doca</td></tr></table>
+<h3>8.2 Lista de veículos</h3>
+<p>Cada card mostra:</p>
+<ul><li><strong>Posição</strong> na fila (número em destaque)</li>
+<li>Placa, carreta, número da viagem</li>
+<li>Motorista e telefone</li>
+<li>Transportadora e fazenda</li>
+<li>Tempo na fila e estimativa</li>
+<li>Volume (m³) e tipo de madeira</li>
+<li>Alertas de documentos pendentes</li>
+</ul>
+<h3>8.3 Expandir detalhes</h3>
+<figure><img src="manual/screenshots/14-fila-patio-expandido.png" alt="Fila expandida" /><figcaption>Fila expandida</figcaption></figure>
+<p>Toque no card para expandir e ver:</p>
+<ul><li><strong>Veículo</strong> — placa, carreta, tipo, transportadora</li>
+<li><strong>Origem / Carga</strong> — fornecedor, fazenda, talhão, local de embarque, madeira, volume</li>
+<li><strong>Agenda</strong> — horários previstos</li>
+<li><strong>Pesagens</strong> — inicial e final (quando existirem)</li>
+<li><strong>Check-in</strong> — último registro na portaria</li>
+<li><strong>Documentos</strong> — situação de cada documento</li>
+<li><strong>Alertas</strong> — pendências ativas</li>
+</ul>
+<strong>Ações no card expandido:</strong>
+<ul><li>Alterar <strong>status da fila</strong> (portaria → balança → descarga)</li>
+<li><strong>Ver viagem completa</strong> — abre o detalhe da viagem</li>
+</ul>
+<strong>Atualizar:</strong> use o ícone ↻ no canto superior direito para recarregar a fila.
+<hr>
+<h2 id="9. Dashboard e relatórios">9. Dashboard e relatórios</h2>
+<h3>9.1 Dashboard operacional</h3>
+<blockquote><strong>Quem usa:</strong> Administrador, Operação</blockquote>
+<figure><img src="manual/screenshots/03-dashboard.png" alt="Dashboard" /><figcaption>Dashboard</figcaption></figure>
+<p>Painel com visão do dia:</p>
+<ul><li><strong>KPIs:</strong> em trânsito, em fila, em descarga, finalizados hoje, atrasados, alertas críticos</li>
+<li><strong>Gráfico de chegadas por hora</strong> — distribuição ao longo do dia</li>
+<li><strong>Gráfico de status</strong> — proporção por etapa</li>
+<li><strong>Lista de chegadas de hoje</strong> — viagens recentes com status</li>
+</ul>
+Toque em uma viagem da lista para abrir o detalhe.
+<h3>9.2 Relatórios</h3>
+<figure><img src="manual/screenshots/10-relatorios.png" alt="Relatórios" /><figcaption>Relatórios</figcaption></figure>
+<p>Módulo de indicadores e análises históricas. Disponível para perfis <strong>Admin</strong>, <strong>Operação</strong> e <strong>Gestor</strong>.</p>
+<hr>
+<h2 id="10. Cadastros e configurações">10. Cadastros e configurações</h2>
+<h3>10.1 Cadastros</h3>
+<blockquote><strong>Quem usa:</strong> Administrador, Gestor</blockquote>
+<figure><img src="manual/screenshots/08-cadastros.png" alt="Cadastros" /><figcaption>Cadastros</figcaption></figure>
+<p>Central de dados base do sistema. Toque em qualquer item para listar, criar, editar ou excluir registros:</p>
+<table><tr><th>Cadastro</th><th>Descrição</th></tr><tr><td>Transportadoras</td><td>Empresas de transporte</td></tr><tr><td>Motoristas</td><td>Condutores</td></tr><tr><td>Veículos</td><td>Frota (placas, tipos)</td></tr><tr><td>Fornecedores</td><td>Fornecedores de madeira</td></tr><tr><td>Fazendas</td><td>Propriedades rurais</td></tr><tr><td>Talhões</td><td>Áreas de colheita</td></tr><tr><td>Locais de Embarque</td><td>Pontos de carregamento</td></tr><tr><td>Tipos de Madeira</td><td>Espécies/produtos</td></tr><tr><td>Tipos de Veículo</td><td>Bitrem, rodotrem…</td></tr><tr><td>Unidades</td><td>Fábricas</td></tr><tr><td>Docas</td><td>Pontos de descarga</td></tr><tr><td>Balanças</td><td>Equipamentos de pesagem</td></tr><tr><td>Motivos de Bloqueio</td><td>Lista padronizada</td></tr><tr><td>Janelas de Agendamento</td><td>Horários disponíveis</td></tr><tr><td>Usuários <em>(admin)</em></td><td>Contas de acesso</td></tr><tr><td>Perfis e Permissões <em>(admin)</em></td><td>Papéis do sistema</td></tr><tr><td>Campos Dinâmicos <em>(admin)</em></td><td>Campos customizados</td></tr><tr><td>Auditoria <em>(admin)</em></td><td>Log de alterações</td></tr></table>
+<strong>Operação comum em qualquer cadastro:</strong>
+<li>Toque no cadastro desejado.</li>
+<li>Use <strong>+ Novo</strong> para criar registro.</li>
+<li>Toque em um item da lista para <strong>editar</strong>.</li>
+<li>Use o ícone de <strong>lixeira</strong> para excluir (quando permitido).</li>
+<h3>10.2 Configurações</h3>
+<blockquote><strong>Quem usa:</strong> Administrador</blockquote>
+<figure><img src="manual/screenshots/09-configuracoes.png" alt="Configurações" /><figcaption>Configurações</figcaption></figure>
+<p>Parâmetros gerais: alertas por e-mail, regras operacionais, integrações e preferências do sistema.</p>
+<hr>
+<h2 id="11. Fluxo operacional completo">11. Fluxo operacional completo</h2>
+<p>Este é o caminho típico de uma carga de madeira, do início ao fim:</p>
+<p>``<code><br>┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐<br>│ Agendamento │ →  │  Em trânsito │ →  │  Portaria   │ →  │ Fila/Pátio  │<br>│ (transport.)│    │  (viagem)    │    │ (check-in)  │    │  (espera)   │<br>└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘<br>                                                                │<br>                    ┌─────────────┐    ┌─────────────┐          │<br>                    │  Finalizado │ ←  │   Descarga  │ ←  Pesagem<br>                    └─────────────┘    └─────────────┘<br></code>`<code></p>
+<table><tr><th>Etapa</th><th>Quem executa</th><th>Onde no sistema</th></tr><tr><td>1. Agendar transporte</td><td>Transportador</td><td>Agendamento → Calendário / Novo</td></tr><tr><td>2. Acompanhar viagem</td><td>Transportador / Operação</td><td>Entrega de Madeira</td></tr><tr><td>3. Check-in na chegada</td><td>Portaria</td><td>Portaria → Check-in</td></tr><tr><td>4. Entrar na fila</td><td>Automático após liberação</td><td>Fila / Pátio</td></tr><tr><td>5. Pesagem inicial</td><td>Operação</td><td>Fila → Pesagem (atalho)</td></tr><tr><td>6. Descarga</td><td>Operação</td><td>Descarga</td></tr><tr><td>7. Pesagem final</td><td>Operação</td><td>Pesagem final</td></tr><tr><td>8. Finalizar</td><td>Automático / Operação</td><td>Detalhe da viagem</td></tr></table>
+<hr>
+<h2 id="12. Perguntas frequentes">12. Perguntas frequentes</h2>
+<h3>Não consigo ver um módulo no menu</h3>
+<p>Verifique seu <strong>perfil</strong>. Transportadores não veem Portaria; Portaria não vê Cadastros. Peça ao administrador para ajustar seu perfil em <strong>Cadastros → Usuários</strong>.</p>
+<h3>A lista da Portaria está vazia</h3>
+<ul><li>Confirme o <strong>filtro de status</strong> (padrão: Aguardando check-in).</li>
+<li>Amplie o <strong>período</strong> para "7 dias" ou "Todos".</li>
+<li>Limpe o campo de <strong>busca</strong>.</li>
+</ul>
+<h3>O check-in não encontra o veículo</h3>
+<ul><li>Verifique se a viagem foi criada a partir do agendamento.</li>
+<li>Tente buscar pela <strong>placa</strong> sem hífen, ou pelo <strong>número da viagem</strong> (VGM-…).</li>
+</ul>
+<h3>A fila não atualiza</h3>
+<p>Toque no ícone <strong>↻</strong> (atualizar) no canto superior direito. A lista é atualizada automaticamente ao mudar status.</p>
+<h3>Esqueci minha senha</h3>
+<p>Entre em contato com o administrador do sistema para redefinir a senha em <strong>Cadastros → Usuários</strong>.</p>
+<h3>O sistema está lento na primeira carga</h3>
+<p>Em produção (Vercel + banco cloud), a <strong>primeira requisição</strong> após período de inatividade pode levar alguns segundos (cold start). Recarregues subsequentes são mais rápidos.</p>
+<hr>
+<h2 id="Apêndice — Regenerar capturas de tela">Apêndice — Regenerar capturas de tela</h2>
+<p>As imagens deste manual estão em </code>docs/manual/screenshots/<code>. Para atualizá-las após mudanças visuais:</p>
+<p></code>`<code>bash<br>npm install -D playwright   # se ainda não instalado<br>npx playwright install chromium<br>node scripts/capture-manual-screenshots.mjs<br></code>`<code></p>
+<p>Opcionalmente defina outra URL:</p>
+<p></code>`<code>bash<br>APP_URL=http://localhost:5173 node scripts/capture-manual-screenshots.mjs<br></code>``</p>
+<hr>
+<p><em>Manual gerado para o projeto Gestão Florestal. Dúvidas ou sugestões: abra uma issue no repositório do projeto.</em></p>
+</body>
+</html>
