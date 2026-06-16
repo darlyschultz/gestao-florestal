@@ -134,7 +134,7 @@ export function MinhasViagens() {
     const matchSearch =
       !term ||
       v.numero.toLowerCase().includes(term) ||
-      (v.agendamento?.veiculo?.placa || '').toLowerCase().includes(term) ||
+      (v.agendamento?.veiculo?.placa || v.veiculo?.placa || '').toLowerCase().includes(term) ||
       (v.motorista?.nome || '').toLowerCase().includes(term)
     return matchFilter && matchSearch
   })
@@ -201,10 +201,10 @@ export function MinhasViagens() {
                 <div>
                   <p className="text-xs text-gray-500 font-medium">{viagem.numero}</p>
                   <p className="text-sm font-bold text-gray-900 mt-0.5">
-                    {viagem.agendamento?.veiculo?.placa || '—'}
-                    {viagem.agendamento?.veiculo?.tipo && (
+                    {viagem.veiculo?.placa || viagem.agendamento?.veiculo?.placa || '—'}
+                    {(viagem.veiculo?.tipo || viagem.agendamento?.veiculo?.tipo) && (
                       <span className="text-xs text-gray-500 font-normal ml-1.5">
-                        · {viagem.agendamento.veiculo.tipo}
+                        · {viagem.veiculo?.tipo || viagem.agendamento?.veiculo?.tipo}
                       </span>
                     )}
                   </p>

@@ -54,21 +54,14 @@ export const portariaCheckinInclude = {
   documentos: { select: { id: true, viagemId: true, tipo: true, numero: true, status: true, observacao: true } },
 } satisfies Prisma.ViagemInclude
 
-/** Lista de viagens — sem alertas, pesagens e descargas. */
+/** Lista de viagens — campos usados em MinhasViagens (sem joins duplicados). */
 export const viagemListInclude = {
-  agendamento: {
-    include: {
-      transportadora: entidadeBasica,
-      motorista: motoristaBasico,
-      veiculo: veiculoBasico,
-      fornecedor: entidadeBasica,
-      fazenda: fazendaBasica,
-      talhao: entidadeBasica,
-      localEmbarque: entidadeBasica,
-    },
-  },
-  transportadora: entidadeBasica,
   motorista: motoristaBasico,
   veiculo: veiculoBasico,
-  documentos: { select: { id: true, status: true, tipo: true } },
+  agendamento: {
+    select: {
+      dataHoraSaidaPrevista: true,
+      fazenda: fazendaBasica,
+    },
+  },
 } satisfies Prisma.ViagemInclude
