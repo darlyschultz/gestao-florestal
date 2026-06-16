@@ -333,9 +333,11 @@ export function FilaPatio() {
   const [resumo, setResumo] = useState<FilaResumo | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detalhes, setDetalhes] = useState<Record<string, FilaItemExtended>>({})
 
   function loadFila() {
     setLoading(true)
+    setDetalhes({})
     filaService.list()
       .then((res) => {
         const data = res.data
@@ -355,6 +357,23 @@ export function FilaPatio() {
   }
 
   useEffect(() => { loadFila() }, [])
+
+  useEffect(() => {
+    if (loading || fila.length === 0) return
+
+    let cancelled = false
+    for (const item of fila) {
+      filaService.get(item.id)
+        .then((res) => {
+          if (!cancelled) {
+            setDetalhes((prev) => ({ ...prev, [item.id]: res.data }))
+          }
+        })
+        .catch(() => {})
+    }
+
+    return () => { cancelled = true }
+  }, [loading, fila])
 
   async function handleUpdateStatus(id: string, status: string) {
     try {
@@ -432,7 +451,7 @@ export function FilaPatio() {
           {fila.map((item) => (
             <FilaItemCard
               key={item.id}
-              item={item}
+              item={detalhes[item.id] ?? item}
               expanded={expandedId === item.id}
               onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
               onUpdateStatus={handleUpdateStatus}

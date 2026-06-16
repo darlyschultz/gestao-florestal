@@ -32,7 +32,7 @@ const viagemIncludeDetail = {
   },
 }
 
-/** Dados suficientes para card + expandir sem 2ª request. */
+/** Lista da fila — só o necessário para os cards (detalhe via GET /:id ou prefetch). */
 const viagemIncludeList = {
   id: true,
   numero: true,
@@ -40,28 +40,7 @@ const viagemIncludeList = {
   motorista: { select: { id: true, nome: true, telefone: true } },
   veiculo: { select: { id: true, placa: true, tipo: true, placaCarreta: true } },
   transportadora: { select: { id: true, nome: true } },
-  documentos: { select: { id: true, status: true, tipo: true, numero: true } },
-  pesagens: {
-    select: { tipo: true, pesoBrutoKg: true, pesoLiquidoKg: true, ticketBalanca: true, createdAt: true },
-    orderBy: { createdAt: 'desc' as const },
-    take: 2,
-  },
-  descargas: {
-    select: { doca: true, material: true, status: true },
-    orderBy: { createdAt: 'desc' as const },
-    take: 1,
-  },
-  checkins: {
-    select: { acao: true, createdAt: true, motivo: true, user: { select: { nome: true } } },
-    orderBy: { createdAt: 'desc' as const },
-    take: 1,
-  },
-  alertas: {
-    where: { lido: false },
-    select: { tipo: true, severidade: true, mensagem: true },
-    orderBy: { createdAt: 'desc' as const },
-    take: 3,
-  },
+  documentos: { select: { id: true, status: true, tipo: true } },
   agendamento: {
     select: {
       numero: true,
@@ -72,8 +51,6 @@ const viagemIncludeList = {
       transportadora: { select: { id: true, nome: true } },
       fazenda: { select: { id: true, nome: true, cidade: true, estado: true } },
       fornecedor: { select: { id: true, nome: true } },
-      talhao: { select: { id: true, nome: true } },
-      localEmbarque: { select: { id: true, nome: true } },
     },
   },
 }
@@ -129,13 +106,24 @@ router.get('/resumo', async (_req: AuthRequest, res: Response) => {
 
 router.get('/', async (_req: AuthRequest, res: Response) => {
   try {
-    const fila = await prisma.filaPatio.findMany({
+    const filaRows = await prisma.filaPatio.findMany({
       where: { status: { not: 'concluido' } },
-      include: {
-        viagem: { select: viagemIncludeList },
-      },
       orderBy: [{ status: 'asc' }, { posicao: 'asc' }],
     })
+
+    const viagemIds = [...new Set(filaRows.map((f) => f.viagemId))]
+    const viagens = viagemIds.length
+      ? await prisma.viagem.findMany({
+          where: { id: { in: viagemIds } },
+          select: viagemIncludeList,
+        })
+      : []
+
+    const viagemById = new Map(viagens.map((v) => [v.id, v]))
+    const fila = filaRows.map((row) => ({
+      ...row,
+      viagem: viagemById.get(row.viagemId) ?? null,
+    }))
 
     return res.json({ items: fila, resumo: buildResumo(fila) })
   } catch (error) {
