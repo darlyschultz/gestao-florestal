@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && npx tsc",
     "db:generate": "prisma generate",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
@@ -23,6 +23,7 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "prisma": "^5.12.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -33,7 +34,6 @@
     "@types/multer": "^1.4.11",
     "@types/node": "^20.12.7",
     "@types/uuid": "^9.0.8",
-    "prisma": "^5.12.1",
     "tsx": "^4.7.3",
     "typescript": "^5.4.5"
   }
