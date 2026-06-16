@@ -11,6 +11,7 @@
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:api": "npm run dev --workspace=apps/api",
     "build": "npm run build --workspace=apps/web",
+    "build:vercel": "npm run db:generate --workspace=apps/api && npm run db:deploy --workspace=apps/api && SEED_SKIP_CLEAR=true npm run db:seed --workspace=apps/api && npm run build --workspace=apps/web",
     "build:all": "npm run build --workspace=apps/web && npm run build --workspace=apps/api",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",

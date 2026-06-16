@@ -8,9 +8,17 @@ import { seedCustomFields } from './seed/custom-fields'
 import { seedOperacional, seedAuditLogs } from './seed/operacional'
 
 async function main() {
+  const existingUsers = await prisma.user.count()
+  if (existingUsers > 0) {
+    console.log('⏭️  Banco já possui dados, seed ignorado.')
+    return
+  }
+
   console.log('🌱 Iniciando seed do banco de dados...\n')
 
-  await clearDatabase()
+  if (process.env.SEED_SKIP_CLEAR !== 'true') {
+    await clearDatabase()
+  }
 
   const roles = await seedRolesAndPermissions()
   await seedSystemSettings()

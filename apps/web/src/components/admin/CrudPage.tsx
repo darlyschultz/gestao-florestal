@@ -6,6 +6,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
+import { getApiBase } from '../../utils/apiBase'
 
 export interface CrudField {
   key: string
@@ -43,7 +44,7 @@ export function CrudPage({ config }: CrudPageProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5291'
+  const apiBase = getApiBase()
 
   async function loadItems() {
     setLoading(true)

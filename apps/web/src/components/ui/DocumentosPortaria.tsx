@@ -7,6 +7,7 @@ import { DocumentoViagem } from '../../types'
 import { StatusBadge } from './StatusBadge'
 import { Button } from './Button'
 import { documentosService } from '../../services/api'
+import { resolveAssetUrl } from '../../utils/apiBase'
 
 const TIPO_LABELS: Record<string, string> = {
   nota_fiscal: 'Nota Fiscal',
@@ -23,9 +24,7 @@ const TIPO_ICONS: Record<string, React.ReactNode> = {
 }
 
 function arquivoUrl(arquivo?: string): string | null {
-  if (!arquivo) return null
-  const base = import.meta.env.VITE_API_URL || 'http://localhost:5291'
-  return `${base}${arquivo}`
+  return resolveAssetUrl(arquivo)
 }
 
 function isImagem(arquivo?: string): boolean {

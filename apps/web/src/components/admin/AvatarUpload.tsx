@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import { Camera, User } from 'lucide-react'
+import { resolveAssetUrl } from '../../utils/apiBase'
 
 interface AvatarUploadProps {
   avatar?: string | null
@@ -10,8 +11,7 @@ interface AvatarUploadProps {
 
 export function AvatarUpload({ avatar, nome, onUpload, loading }: AvatarUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5291'
-  const src = avatar?.startsWith('http') ? avatar : avatar ? `${apiBase}${avatar}` : null
+  const src = resolveAssetUrl(avatar)
 
   return (
     <div className="flex flex-col items-center gap-3">

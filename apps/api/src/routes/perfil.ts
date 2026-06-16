@@ -1,21 +1,14 @@
 import { Router, Response } from 'express'
 import bcrypt from 'bcryptjs'
-import multer from 'multer'
-import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { logAudit } from '../utils/audit'
+import { avatarUploadMiddleware, saveUploadedFile } from '../utils/storage'
 
 const router = Router()
 const prisma = new PrismaClient()
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads/avatars')),
-  filename: (_req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`)
-  },
-})
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } })
+const upload = avatarUploadMiddleware
 
 const userSelect = {
   id: true,
@@ -109,7 +102,7 @@ router.post('/avatar', upload.single('avatar'), async (req: AuthRequest, res: Re
   try {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' })
 
-    const avatar = `/uploads/avatars/${req.file.filename}`
+    const avatar = await saveUploadedFile(req.file, 'avatars')
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: { avatar },

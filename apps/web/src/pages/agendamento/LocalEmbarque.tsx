@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { MapView } from '../../components/ui/MapView'
 import { useAgendamentoRegras } from '../../hooks/useAgendamentoRegras'
+import { getApiBase } from '../../utils/apiBase'
 
 interface GeoState {
   latitude: number | null
@@ -45,7 +46,7 @@ export function LocalEmbarque() {
 
   useEffect(() => {
     if (form?.talhaoId) {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5291'
+      const apiBase = getApiBase()
       const token = localStorage.getItem('token')
       fetch(`${apiBase}/api/cadastros/talhoes/${form.talhaoId}`, {
         headers: { Authorization: `Bearer ${token}` },

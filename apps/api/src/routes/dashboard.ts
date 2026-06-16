@@ -30,12 +30,12 @@ router.get('/operacional', async (_req: AuthRequest, res: Response) => {
       ])
 
     const chegadasPorHora = await prisma.$queryRaw<{ hora: number; total: number }[]>`
-      SELECT 
-        CAST(strftime('%H', createdAt) AS INTEGER) as hora,
-        COUNT(*) as total
+      SELECT
+        CAST(EXTRACT(HOUR FROM "updatedAt") AS INTEGER) as hora,
+        CAST(COUNT(*) AS INTEGER) as total
       FROM viagens
       WHERE status = 'finalizado'
-        AND createdAt >= ${hoje.toISOString()}
+        AND "updatedAt" >= ${hoje}
       GROUP BY hora
       ORDER BY hora
     `
