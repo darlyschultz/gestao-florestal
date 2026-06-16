@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { cadastrosService } from '../../services/api'
+import { CACHE_TTL, getSessionCache, setSessionCache } from '../../utils/apiCache'
 
 interface FormData {
   transportadoraId: string
@@ -54,24 +55,40 @@ export function NovoAgendamento() {
   const [tiposMadeira, setTiposMadeira] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
-    Promise.all([
-      cadastrosService.transportadoras(),
-      cadastrosService.motoristas(),
-      cadastrosService.veiculos(),
-      cadastrosService.fornecedores(),
-      cadastrosService.fazendas(),
-      cadastrosService.tiposMadeira(),
-    ]).then(([t, m, v, f, fz, tm]) => {
-      setTransportadoras(t.data)
-      setMotoristas(m.data)
-      setVeiculos(v.data)
-      setFornecedores(f.data)
-      setFazendas(fz.data)
-      setTiposMadeira(tm.data.map((x: { descricao: string; codigo: string }) => ({
-        value: x.descricao,
-        label: x.descricao,
-      })))
-    }).catch(console.error)
+    interface Bundle {
+      transportadoras: { id: string; nome: string }[]
+      motoristas: { id: string; nome: string }[]
+      veiculos: { id: string; placa: string; tipo: string }[]
+      fornecedores: { id: string; nome: string }[]
+      fazendas: { id: string; nome: string; cidade: string; estado: string }[]
+      tiposMadeira: { descricao: string; codigo: string }[]
+    }
+
+    const cached = getSessionCache<Bundle>('cadastros-agendamento')
+    if (cached) {
+      setTransportadoras(cached.transportadoras)
+      setMotoristas(cached.motoristas)
+      setVeiculos(cached.veiculos)
+      setFornecedores(cached.fornecedores)
+      setFazendas(cached.fazendas)
+      setTiposMadeira(cached.tiposMadeira.map((x) => ({ value: x.descricao, label: x.descricao })))
+      return
+    }
+
+    cadastrosService.bundleAgendamento()
+      .then(({ data }) => {
+        setTransportadoras(data.transportadoras)
+        setMotoristas(data.motoristas)
+        setVeiculos(data.veiculos)
+        setFornecedores(data.fornecedores)
+        setFazendas(data.fazendas)
+        setTiposMadeira(data.tiposMadeira.map((x: { descricao: string }) => ({
+          value: x.descricao,
+          label: x.descricao,
+        })))
+        setSessionCache('cadastros-agendamento', data, CACHE_TTL.cadastros)
+      })
+      .catch(console.error)
   }, [])
 
   useEffect(() => {

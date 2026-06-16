@@ -15,6 +15,12 @@ export function cacheSet(key: string, value: unknown, ttlMs: number): void {
   store.set(key, { value, expiresAt: Date.now() + ttlMs })
 }
 
+export function cacheClearPrefix(prefix: string): void {
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) store.delete(key)
+  }
+}
+
 export async function cacheGetOrSet<T>(
   key: string,
   ttlMs: number,

@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma'
 
 const router = Router()
 
-const viagemInclude = {
+const viagemIncludeDetail = {
   motorista: true,
   veiculo: { include: { tipoVeiculo: true } },
   transportadora: true,
@@ -27,6 +27,23 @@ const viagemInclude = {
       talhao: true,
       fornecedor: true,
       localEmbarque: true,
+    },
+  },
+}
+
+const viagemIncludeList = {
+  motorista: { select: { id: true, nome: true, telefone: true } },
+  veiculo: { select: { id: true, placa: true, tipo: true, placaCarreta: true } },
+  transportadora: { select: { id: true, nome: true } },
+  documentos: { select: { id: true, status: true, tipo: true } },
+  agendamento: {
+    select: {
+      numero: true,
+      tipoMadeira: true,
+      quantidadePrevistaM3: true,
+      dataHoraChegadaPrevista: true,
+      fazenda: { select: { id: true, nome: true, cidade: true, estado: true } },
+      fornecedor: { select: { id: true, nome: true } },
     },
   },
 }
@@ -74,11 +91,12 @@ router.get('/', async (_req: AuthRequest, res: Response) => {
     const fila = await prisma.filaPatio.findMany({
       where: { status: { not: 'concluido' } },
       include: {
-        viagem: { include: viagemInclude },
+        viagem: { include: viagemIncludeList },
       },
       orderBy: [{ status: 'asc' }, { posicao: 'asc' }],
     })
 
+    res.set('Cache-Control', 'private, max-age=5')
     return res.json(fila)
   } catch (error) {
     console.error(error)
@@ -91,7 +109,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const item = await prisma.filaPatio.findUnique({
       where: { id: req.params.id },
       include: {
-        viagem: { include: viagemInclude },
+        viagem: { include: viagemIncludeDetail },
       },
     })
 
@@ -110,7 +128,7 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
       where: { id: req.params.id },
       data: { status },
       include: {
-        viagem: { include: viagemInclude },
+        viagem: { include: viagemIncludeDetail },
       },
     })
 

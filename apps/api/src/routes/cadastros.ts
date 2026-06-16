@@ -1,11 +1,22 @@
 import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest, requirePerfil } from '../middleware/auth'
+import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { logAudit } from '../utils/audit'
 import { prisma } from '../lib/prisma'
 
 const router = Router()
 
 router.use(authMiddleware)
+
+router.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') return next()
+  res.on('finish', () => {
+    if (res.statusCode < 400) invalidateCachePrefix('cadastros:')
+  })
+  next()
+})
+
+router.use(httpCacheMiddleware(120, 'cadastros:'))
 
 const adminOnly = requirePerfil('admin')
 
@@ -38,6 +49,46 @@ async function softDelete(
     return res.status(500).json({ error: 'Erro ao excluir registro' })
   }
 }
+
+// ─── Bundle (1 request para formulário de agendamento) ─────────────────────
+router.get('/bundle/agendamento', async (_req, res: Response) => {
+  const filter = activeFilter(false)
+  const [transportadoras, motoristas, veiculos, fornecedores, fazendas, tiposMadeira] =
+    await Promise.all([
+      prisma.transportadora.findMany({
+        where: filter,
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      }),
+      prisma.motorista.findMany({
+        where: filter,
+        select: { id: true, nome: true, transportadoraId: true },
+        orderBy: { nome: 'asc' },
+      }),
+      prisma.veiculo.findMany({
+        where: filter,
+        select: { id: true, placa: true, tipo: true, transportadoraId: true },
+        orderBy: { placa: 'asc' },
+      }),
+      prisma.fornecedor.findMany({
+        where: filter,
+        select: { id: true, nome: true },
+        orderBy: { nome: 'asc' },
+      }),
+      prisma.fazenda.findMany({
+        where: filter,
+        select: { id: true, nome: true, cidade: true, estado: true, fornecedorId: true },
+        orderBy: { nome: 'asc' },
+      }),
+      prisma.tipoMadeira.findMany({
+        where: activeOnly(false),
+        select: { id: true, codigo: true, descricao: true },
+        orderBy: { descricao: 'asc' },
+      }),
+    ])
+
+  return res.json({ transportadoras, motoristas, veiculos, fornecedores, fazendas, tiposMadeira })
+})
 
 // ─── Transportadoras ───────────────────────────────────────────────────────
 router.get('/transportadoras', async (req, res: Response) => {

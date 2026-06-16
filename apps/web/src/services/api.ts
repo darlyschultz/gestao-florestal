@@ -112,6 +112,7 @@ export const dashboardService = {
 
 // Cadastros
 export const cadastrosService = {
+  bundleAgendamento: () => api.get('/api/cadastros/bundle/agendamento'),
   transportadoras: (all?: boolean) => api.get('/api/cadastros/transportadoras', { params: all ? { all: true } : {} }),
   motoristas: (all?: boolean) => api.get('/api/cadastros/motoristas', { params: all ? { all: true } : {} }),
   veiculos: (all?: boolean) => api.get('/api/cadastros/veiculos', { params: all ? { all: true } : {} }),

@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+import { prisma } from './lib/prisma'
 import authRoutes from './routes/auth'
 import agendamentosRoutes from './routes/agendamentos'
 import viagensRoutes from './routes/viagens'
@@ -50,8 +51,14 @@ export function createApp() {
   app.use('/api/perfis', perfisRoutes)
   app.use('/api/auditoria', auditoriaRoutes)
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      res.set('Cache-Control', 'no-store')
+      res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() })
+    } catch {
+      res.status(503).json({ status: 'degraded', db: 'error', timestamp: new Date().toISOString() })
+    }
   })
 
   return app

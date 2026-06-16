@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { agendamentosService } from '../services/api'
+import { CACHE_TTL, getSessionCache, setSessionCache } from '../utils/apiCache'
 
 export interface RegrasAgendamento {
   requireNf: boolean
@@ -52,9 +53,19 @@ export function useAgendamentoRegras() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const cached = getSessionCache<RegrasAgendamento>('regras-agendamento')
+    if (cached) {
+      setRegras(cached)
+      setLoading(false)
+      return
+    }
+
     agendamentosService
       .regras()
-      .then(({ data }) => setRegras(data))
+      .then(({ data }) => {
+        setRegras(data)
+        setSessionCache('regras-agendamento', data, CACHE_TTL.regras)
+      })
       .catch(() => setRegras(DEFAULT_REGRAS))
       .finally(() => setLoading(false))
   }, [])
