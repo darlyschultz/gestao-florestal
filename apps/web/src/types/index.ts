@@ -1,4 +1,4 @@
-export type Perfil = 'admin' | 'transportador' | 'motorista' | 'portaria' | 'operacao' | 'gestor'
+export type Perfil = 'admin' | 'transportador' | 'motorista' | 'portaria' | 'operacao' | 'gestor' | 'operador_area'
 
 export interface User {
   id: string
@@ -6,6 +6,8 @@ export interface User {
   email: string
   perfil: Perfil
   transportadoraId?: string
+  fazendaId?: string
+  fazenda?: { id: string; nome: string }
   avatar?: string
   telefone?: string
   cargo?: string

@@ -8,6 +8,7 @@ type Users = {
   userPortaria: { id: string }
   userOperacao: { id: string }
   userMotorista: { id: string }
+  userOperadorArea?: { id: string }
 }
 
 export async function seedOperacional(cad: Cadastros, users: Users) {
@@ -145,6 +146,73 @@ export async function seedOperacional(cad: Cadastros, users: Users) {
 
   await prisma.filaPatio.create({
     data: { viagemId: viagem3.id, posicao: 1, status: 'aguardando_balanca', tempoEstimadoMin: 15 },
+  })
+
+  const agend4 = await prisma.agendamento.create({
+    data: {
+      numero: 'AGD-2024-0004',
+      transportadoraId: transportadoras.transf1.id,
+      motoristaId: motoristas.mot1.id,
+      veiculoId: veiculos.vec1.id,
+      fornecedorId: fornecedores.forn1.id,
+      fazendaId: fazendas.faz1.id,
+      talhaoId: talhoes.tal1.id,
+      localEmbarqueId: locaisEmbarque.loc1.id,
+      tipoMadeira: 'Eucalipto',
+      quantidadePrevistaM3: 42,
+      dataHoraSaidaPrevista: new Date(),
+      dataHoraChegadaPrevista: new Date(Date.now() + 4 * 60 * 60 * 1000),
+      status: 'confirmado',
+      userId: userTransp.id,
+    },
+  })
+
+  const viagem4 = await prisma.viagem.create({
+    data: {
+      numero: 'VGM-2024-0004',
+      agendamentoId: agend4.id,
+      transportadoraId: transportadoras.transf1.id,
+      motoristaId: motoristas.mot1.id,
+      veiculoId: veiculos.vec1.id,
+      status: 'agendado',
+      latEmbarque: -23.7636,
+      lngEmbarque: -47.1234,
+    },
+  })
+
+  const agend5 = await prisma.agendamento.create({
+    data: {
+      numero: 'AGD-2024-0005',
+      transportadoraId: transportadoras.transf1.id,
+      motoristaId: motoristas.mot2.id,
+      veiculoId: veiculos.vec2.id,
+      fornecedorId: fornecedores.forn1.id,
+      fazendaId: fazendas.faz1.id,
+      talhaoId: talhoes.tal2.id,
+      tipoMadeira: 'Pinus',
+      quantidadePrevistaM3: 36,
+      dataHoraSaidaPrevista: new Date(),
+      dataHoraChegadaPrevista: new Date(Date.now() + 5 * 60 * 60 * 1000),
+      status: 'confirmado',
+      userId: userTransp.id,
+    },
+  })
+
+  await prisma.viagem.create({
+    data: {
+      numero: 'VGM-2024-0005',
+      agendamentoId: agend5.id,
+      transportadoraId: transportadoras.transf1.id,
+      motoristaId: motoristas.mot2.id,
+      veiculoId: veiculos.vec2.id,
+      status: 'em_carregamento',
+      latEmbarque: -23.7636,
+      lngEmbarque: -47.1234,
+    },
+  })
+
+  await prisma.documentoViagem.create({
+    data: { viagemId: viagem4.id, tipo: 'ordem_carregamento', numero: 'OC-004567', status: 'valido' },
   })
 
   await prisma.pesagem.createMany({

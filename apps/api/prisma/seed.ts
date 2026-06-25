@@ -28,6 +28,7 @@ async function main() {
     roles,
     unidadeId: unidade.id,
     transportadoraId: cadastros.transportadoras.transf1.id,
+    fazendaId: cadastros.fazendas.faz1.id,
   })
 
   await prisma.user.update({
@@ -44,8 +45,10 @@ async function main() {
   console.log('  transportador@florestal.com | Transportador')
   console.log('  portaria@florestal.com      | Portaria')
   console.log('  operacao@florestal.com      | Operação')
-  console.log('  motorista@florestal.com     | Motorista')
+  console.log('  motorista@florestal.com     | Motorista (legado)')
+  console.log('  joao.carlos@... ou CPF      | Motorista João Carlos')
   console.log('  gestor@florestal.com        | Gestor')
+  console.log('  operador.area@florestal.com | Operador de Área (Faz. Boa Vista)')
 }
 
 main()

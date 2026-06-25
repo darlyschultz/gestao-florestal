@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select'
 import { agendamentosService, cadastrosService } from '../../services/api'
 import type { DisponibilidadeDia } from '../../hooks/useAgendamentoRegras'
 import { useAuth } from '../../contexts/AuthContext'
+import { HorarioSlotButton, HorariosLegenda } from '../../components/agendamento/HorarioSlotButton'
 
 const COLS = 5
 
@@ -134,7 +135,7 @@ export function Horarios() {
         <div className="bg-white rounded-2xl shadow-card overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Clock size={16} /> Toque para selecionar
+              <Clock size={16} /> Toque nos horários disponíveis
             </h3>
             {loading && <span className="text-xs text-gray-400">...</span>}
           </div>
@@ -147,29 +148,21 @@ export function Horarios() {
             ) : (
               rows.map((row, ri) => (
                 <div key={ri} className="grid grid-cols-5 gap-1.5 mb-1.5">
-                  {row.map((slot) => {
-                    const isOcupado = !slot.disponivel
-                    const isSelected = selectedSlots.has(slot.horario)
-                    return (
-                      <button
-                        key={slot.horario}
-                        type="button"
-                        disabled={isOcupado}
-                        onClick={() => toggleSlot(slot.horario)}
-                        className={`py-2.5 rounded-xl text-xs font-semibold ${
-                          isOcupado
-                            ? 'bg-gray-200 text-gray-400 line-through'
-                            : isSelected
-                              ? 'bg-forest-700 text-white'
-                              : 'bg-gray-50 text-gray-600 border border-gray-100'
-                        }`}
-                      >
-                        {slot.horario}
-                      </button>
-                    )
-                  })}
+                  {row.map((slot) => (
+                    <HorarioSlotButton
+                      key={slot.horario}
+                      slot={slot}
+                      selected={selectedSlots.has(slot.horario)}
+                      onToggle={toggleSlot}
+                    />
+                  ))}
                 </div>
               ))
+            )}
+            {!semJanela && rows.length > 0 && !loading && (
+              <div className="px-1 pt-2">
+                <HorariosLegenda />
+              </div>
             )}
           </div>
         </div>

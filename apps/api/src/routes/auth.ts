@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
+import { findUserByLogin } from '../utils/motoristaUser'
 
 const router = Router()
 
@@ -11,11 +12,10 @@ router.post('/login', async (req: Request, res: Response) => {
     const { email, senha } = req.body
 
     if (!email || !senha) {
-      return res.status(400).json({ error: 'Email e senha são obrigatórios' })
+      return res.status(400).json({ error: 'Informe e-mail ou CPF e a senha' })
     }
 
-    const emailNorm = String(email).trim().toLowerCase()
-    const user = await prisma.user.findUnique({ where: { email: emailNorm } })
+    const user = await findUserByLogin(String(email))
 
     if (!user || !user.ativo) {
       return res.status(401).json({ error: 'Credenciais inválidas' })
@@ -41,6 +41,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         perfil: user.perfil,
         transportadoraId: user.transportadoraId,
+        fazendaId: user.fazendaId,
         avatar: user.avatar,
         telefone: user.telefone,
         cargo: user.cargo,
@@ -56,7 +57,18 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
-      select: { id: true, nome: true, email: true, perfil: true, transportadoraId: true, avatar: true, telefone: true, cargo: true },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        perfil: true,
+        transportadoraId: true,
+        fazendaId: true,
+        avatar: true,
+        telefone: true,
+        cargo: true,
+        fazenda: { select: { id: true, nome: true } },
+      },
     })
 
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' })

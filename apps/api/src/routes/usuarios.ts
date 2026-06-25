@@ -16,11 +16,13 @@ const userSelect = {
   ativo: true,
   transportadoraId: true,
   unidadeId: true,
+  fazendaId: true,
   roleId: true,
   createdAt: true,
   updatedAt: true,
   transportadora: { select: { id: true, nome: true } },
   unidade: { select: { id: true, nome: true } },
+  fazenda: { select: { id: true, nome: true } },
   role: { select: { id: true, name: true, slug: true } },
 }
 
@@ -55,7 +57,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { nome, email, senha, perfil, telefone, cargo, transportadoraId, unidadeId, roleId } = req.body
+    const { nome, email, senha, perfil, telefone, cargo, transportadoraId, unidadeId, fazendaId, roleId } = req.body
 
     if (!nome || !email || !senha || !perfil) {
       return res.status(400).json({ error: 'Nome, email, senha e perfil são obrigatórios' })
@@ -71,6 +73,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         cargo,
         transportadoraId,
         unidadeId,
+        fazendaId,
         roleId,
       },
       select: userSelect,

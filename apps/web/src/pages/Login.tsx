@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react'
+import { Eye, EyeOff, Lock, Shield, User } from 'lucide-react'
 import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
@@ -9,7 +9,7 @@ import { Input } from '../components/ui/Input'
 export function Login() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({ email: '', senha: '' })
+  const [form, setForm] = useState({ login: '', senha: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,12 +21,12 @@ export function Login() {
     setLoading(true)
 
     try {
-      await login(form.email, form.senha)
+      await login(form.login, form.senha)
       navigate('/menu')
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
-          setError('Email ou senha inválidos. Verifique suas credenciais.')
+          setError('E-mail/CPF ou senha inválidos. Verifique suas credenciais.')
         } else if (!err.response) {
           setError('Não foi possível conectar ao servidor. Aguarde e tente novamente.')
         } else {
@@ -41,10 +41,12 @@ export function Login() {
   }
 
   const quickLogins = [
-    { label: 'Admin', email: 'admin@florestal.com' },
-    { label: 'Transp.', email: 'transportador@florestal.com' },
-    { label: 'Portaria', email: 'portaria@florestal.com' },
-    { label: 'Operação', email: 'operacao@florestal.com' },
+    { label: 'Admin', login: 'admin@florestal.com' },
+    { label: 'Transp.', login: 'transportador@florestal.com' },
+    { label: 'Motorista', login: '123.456.789-00' },
+    { label: 'Portaria', login: 'portaria@florestal.com' },
+    { label: 'Operação', login: 'operacao@florestal.com' },
+    { label: 'Op. Área', login: 'operador.area@florestal.com' },
   ]
 
   return (
@@ -78,14 +80,14 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Usuário"
-              type="email"
-              placeholder="Digite seu usuário"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              leftIcon={<Mail size={16} />}
+              label="E-mail ou CPF"
+              type="text"
+              placeholder="seu@email.com ou CPF"
+              value={form.login}
+              onChange={(e) => setForm((f) => ({ ...f, login: e.target.value }))}
+              leftIcon={<User size={16} />}
               required
-              autoComplete="email"
+              autoComplete="username"
             />
             <Input
               label="Senha"
@@ -132,13 +134,13 @@ export function Login() {
 
           {/* Quick login para dev */}
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center mb-3">Acesso rápido (dev) • senha: 123456</p>
-            <div className="grid grid-cols-4 gap-2">
+            <p className="text-xs text-gray-400 text-center mb-3">Acesso rápido (dev) • senha: 123456 · motorista: CPF ou e-mail</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {quickLogins.map((q) => (
                 <button
-                  key={q.email}
+                  key={q.login}
                   type="button"
-                  onClick={() => setForm({ email: q.email, senha: '123456' })}
+                  onClick={() => setForm({ login: q.login, senha: '123456' })}
                   className="text-xs py-2 px-2 bg-gray-50 hover:bg-forest-50 text-gray-600 hover:text-forest-700 rounded-lg border border-gray-200 hover:border-forest-300 transition-colors"
                 >
                   {q.label}

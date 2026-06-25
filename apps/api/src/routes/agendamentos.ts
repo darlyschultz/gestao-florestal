@@ -17,6 +17,10 @@ import {
   dadosOperacionaisCompletos,
   enriquecerAgendamento,
 } from '../utils/agendamentoCompleteness'
+import { buildContextoFormularioAgendamento } from '../utils/agendamentoFormContext'
+import { uploadMiddleware, saveUploadedFile } from '../utils/storage'
+
+const uploadDocumento = uploadMiddleware
 
 const router = Router()
 
@@ -131,6 +135,16 @@ router.get('/calendario-resumo', async (req: AuthRequest, res: Response) => {
   }
 })
 
+/** Contexto para pré-preencher transportadora, motorista e veículos no formulário */
+router.get('/contexto-formulario', async (req: AuthRequest, res: Response) => {
+  try {
+    const ctx = await buildContextoFormularioAgendamento(req.user!.id, req.user!.perfil)
+    return res.json(ctx)
+  } catch {
+    return res.status(500).json({ error: 'Erro ao buscar contexto do formulário' })
+  }
+})
+
 /** Contexto auto-preenchido para motorista logado */
 router.get('/motorista/contexto', async (req: AuthRequest, res: Response) => {
   try {
@@ -138,44 +152,19 @@ router.get('/motorista/contexto', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Acesso apenas para motoristas' })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-      include: {
-        transportadora: { select: { id: true, nome: true } },
-        motoristaCadastro: {
-          include: {
-            transportadora: { select: { id: true, nome: true } },
-          },
-        },
-      },
-    })
-
-    if (!user?.motoristaCadastro) {
+    const ctx = await buildContextoFormularioAgendamento(req.user!.id, 'motorista')
+    if (!ctx.motoristaId) {
       return res.status(404).json({
         error: 'Usuário motorista sem vínculo ao cadastro. Solicite ao administrador.',
       })
     }
 
-    const veiculos = await prisma.veiculo.findMany({
-      where: {
-        transportadoraId: user.motoristaCadastro.transportadoraId,
-        active: true,
-      },
-      select: { id: true, placa: true, tipo: true, placaCarreta: true },
-      orderBy: { placa: 'asc' },
-    })
-
     return res.json({
-      transportadoraId: user.motoristaCadastro.transportadoraId,
-      transportadora: user.motoristaCadastro.transportadora,
-      motoristaId: user.motoristaCadastro.id,
-      motorista: {
-        id: user.motoristaCadastro.id,
-        nome: user.motoristaCadastro.nome,
-        telefone: user.motoristaCadastro.telefone,
-        cnh: user.motoristaCadastro.cnh,
-      },
-      veiculos,
+      transportadoraId: ctx.transportadoraId,
+      transportadora: ctx.transportadora,
+      motoristaId: ctx.motoristaId,
+      motorista: ctx.motorista,
+      veiculos: ctx.veiculos,
     })
   } catch {
     return res.status(500).json({ error: 'Erro ao buscar contexto do motorista' })
@@ -264,7 +253,7 @@ router.post('/pre-agendar', async (req: AuthRequest, res: Response) => {
             motoristaId: motId || null,
             veiculoId: veicId || null,
             dataHoraSaidaPrevista: slot.dateTime,
-            status: 'pre_agendado',
+            status: 'confirmado',
             grupoReservaId,
             userId: req.user!.id,
           },
@@ -403,10 +392,23 @@ router.get('/:id/documentos', async (req: AuthRequest, res: Response) => {
   }
 })
 
-router.post('/:id/documentos', async (req: AuthRequest, res: Response) => {
+router.post('/:id/documentos', uploadDocumento.single('arquivo'), async (req: AuthRequest, res: Response) => {
   try {
-    const { tipo, numero, arquivo } = req.body
+    const { tipo, numero } = req.body as { tipo?: string; numero?: string }
     if (!tipo) return res.status(400).json({ error: 'Informe o tipo do documento' })
+
+    const payload: { numero?: string | null; arquivo?: string | null; status: string } = {
+      status: 'pendente',
+    }
+    if (numero !== undefined) payload.numero = numero || null
+
+    if (req.file) {
+      payload.arquivo = await saveUploadedFile(req.file, 'documentos')
+    } else if (req.body.arquivo === '') {
+      payload.arquivo = null
+    } else if (typeof req.body.arquivo === 'string' && req.body.arquivo) {
+      payload.arquivo = req.body.arquivo
+    }
 
     const existente = await prisma.documentoAgendamento.findFirst({
       where: { agendamentoId: req.params.id, tipo },
@@ -415,20 +417,22 @@ router.post('/:id/documentos', async (req: AuthRequest, res: Response) => {
     const doc = existente
       ? await prisma.documentoAgendamento.update({
           where: { id: existente.id },
-          data: { numero, arquivo, status: numero ? 'pendente' : 'pendente' },
+          data: payload,
         })
       : await prisma.documentoAgendamento.create({
           data: {
             agendamentoId: req.params.id,
             tipo,
-            numero,
-            arquivo,
+            numero: numero || null,
+            arquivo: payload.arquivo,
           },
         })
 
     return res.status(existente ? 200 : 201).json(doc)
-  } catch {
-    return res.status(500).json({ error: 'Erro ao salvar documento' })
+  } catch (error) {
+    console.error(error)
+    const msg = error instanceof Error ? error.message : 'Erro ao salvar documento'
+    return res.status(400).json({ error: msg })
   }
 })
 
@@ -464,8 +468,8 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
     const merged = { ...atual, ...body }
     const novoStatus =
-      atual.status === 'confirmado'
-        ? 'confirmado'
+      atual.status === 'confirmado' || atual.status === 'cancelado'
+        ? atual.status
         : dadosOperacionaisCompletos(merged as typeof atual)
           ? 'agendado'
           : 'pre_agendado'
@@ -488,12 +492,15 @@ router.post('/:id/confirmar', async (req: AuthRequest, res: Response) => {
   try {
     const agendamento = await prisma.agendamento.findUnique({
       where: { id: req.params.id },
-      include: { documentos: true },
+      include: { documentos: true, viagem: true },
     })
 
     if (!agendamento) return res.status(404).json({ error: 'Agendamento não encontrado' })
-    if (agendamento.status === 'confirmado') {
-      return res.status(400).json({ error: 'Agendamento já confirmado' })
+    if (agendamento.status === 'cancelado') {
+      return res.status(400).json({ error: 'Agendamento cancelado' })
+    }
+    if (agendamento.viagem) {
+      return res.status(400).json({ error: 'Viagem já criada para este agendamento' })
     }
 
     const regras = await getRegrasAgendamento()
@@ -504,7 +511,7 @@ router.post('/:id/confirmar', async (req: AuthRequest, res: Response) => {
 
     if (!enriched.dadosCompletos) {
       return res.status(400).json({
-        error: 'Complete os dados operacionais antes de confirmar',
+        error: 'Complete os dados operacionais antes de gerar a viagem',
         pendencias: enriched.pendencias,
       })
     }

@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Home, Calendar, Truck, MapPin, Map, BarChart2, Building2,
-  Settings, FileBarChart, LogOut, Clock,
+  Settings, FileBarChart, LogOut, Clock, User, Package,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -15,14 +15,16 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { to: '/menu', icon: Home, label: 'Início' },
-  { to: '/agendamento/calendario', icon: Calendar, label: 'Agendamento', perfis: ['admin', 'transportador'] },
+  { to: '/agendamento/calendario', icon: Calendar, label: 'Reservar Horário', perfis: ['admin', 'transportador', 'motorista'] },
   { to: '/agendamento/meus', icon: Clock, label: 'Meus Horários', perfis: ['admin', 'transportador', 'motorista'] },
-  { to: '/viagens', icon: Truck, label: 'Viagens' },
-  { to: '/mapa', icon: Map, label: 'Mapa / Frota' },
+  { to: '/viagens', icon: Truck, label: 'Viagens', perfis: ['admin', 'transportador', 'portaria', 'operacao', 'gestor', 'motorista'] },
+  { to: '/mapa', icon: Map, label: 'Mapa / Frota', perfis: ['admin', 'transportador', 'portaria', 'operacao', 'gestor'] },
+  { to: '/area/carregamento', icon: Package, label: 'Carregamento', perfis: ['operador_area', 'admin', 'gestor'] },
   { to: '/portaria', icon: MapPin, label: 'Portaria', perfis: ['admin', 'portaria'] },
   { to: '/fila-patio', icon: Truck, label: 'Fila / Pátio', perfis: ['admin', 'portaria', 'operacao'] },
   { to: '/dashboard', icon: BarChart2, label: 'Dashboard', perfis: ['admin', 'operacao', 'gestor'] },
   { to: '/relatorios', icon: FileBarChart, label: 'Relatórios', perfis: ['admin', 'operacao', 'gestor'] },
+  { to: '/perfil', icon: User, label: 'Meu Perfil', perfis: ['motorista', 'operador_area'] },
 ]
 
 const adminNav: NavItem[] = [
@@ -78,7 +80,9 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         <NavSection items={mainNav} />
         <div className="pt-4 mt-4 border-t border-gray-100">
-          <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Administração</p>
+          {(user?.perfil === 'admin' || user?.perfil === 'gestor') && (
+            <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">Administração</p>
+          )}
           <NavSection items={adminNav} />
         </div>
       </nav>

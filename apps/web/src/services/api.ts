@@ -59,7 +59,18 @@ export const agendamentosService = {
   listDocumentos: (id: string) => api.get(`/api/agendamentos/${id}/documentos`),
   saveDocumento: (id: string, data: { tipo: string; numero?: string; arquivo?: string }) =>
     api.post(`/api/agendamentos/${id}/documentos`, data),
+  uploadDocumento: (id: string, data: { tipo: string; numero?: string; file?: File; arquivoUrl?: string }) => {
+    const form = new FormData()
+    form.append('tipo', data.tipo)
+    if (data.numero) form.append('numero', data.numero)
+    if (data.file) form.append('arquivo', data.file)
+    else if (data.arquivoUrl) form.append('arquivo', data.arquivoUrl)
+    return api.post(`/api/agendamentos/${id}/documentos`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
   motoristaContexto: () => api.get('/api/agendamentos/motorista/contexto'),
+  contextoFormulario: () => api.get('/api/agendamentos/contexto-formulario'),
 }
 
 // Viagens
@@ -101,6 +112,22 @@ export const filaService = {
   resumo: () => api.get('/api/fila/resumo'),
   get: (id: string) => api.get(`/api/fila/${id}`),
   updateStatus: (id: string, status: string) => api.put(`/api/fila/${id}/status`, { status }),
+}
+
+// Carregamento na área (fazenda)
+export const carregamentosService = {
+  fila: (params?: {
+    fazendaId?: string
+    placa?: string
+    motoristaId?: string
+    transportadoraId?: string
+    status?: string
+  }) => api.get('/api/carregamentos/fila', { params }),
+  get: (viagemId: string) => api.get(`/api/carregamentos/viagens/${viagemId}`),
+  resumo: (params?: { fazendaId?: string }) => api.get('/api/carregamentos/resumo', { params }),
+  registrarChegada: (viagemId: string) => api.post(`/api/carregamentos/viagens/${viagemId}/chegada`),
+  iniciar: (viagemId: string) => api.post(`/api/carregamentos/viagens/${viagemId}/iniciar`),
+  concluir: (viagemId: string) => api.post(`/api/carregamentos/viagens/${viagemId}/concluir`),
 }
 
 // Pesagens

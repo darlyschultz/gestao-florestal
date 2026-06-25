@@ -47,6 +47,7 @@ export const MODULES = [
   'fila_patio',
   'pesagem',
   'descarga',
+  'carregamento',
   'historico',
   'relatorios',
   'cadastros',

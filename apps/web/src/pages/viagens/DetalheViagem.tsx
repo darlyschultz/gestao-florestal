@@ -14,6 +14,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Timeline } from '../../components/ui/Timeline'
 import { Viagem } from '../../types'
 import { viagensService } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 
 const TIMELINE_STEPS = [
   { key: 'agendado', label: 'Agendado' },
@@ -85,6 +86,8 @@ const MOCK_VIAGEM: Viagem = {
 export function DetalheViagem() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isMotorista = user?.perfil === 'motorista'
   const [viagem, setViagem] = useState<Viagem | null>(null)
   const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState(false)
@@ -137,9 +140,15 @@ export function DetalheViagem() {
   }))
 
   const nextActions: { label: string; status: string; variant?: 'primary' | 'secondary' }[] = []
-  if (viagem.status === 'agendado') nextActions.push({ label: 'Iniciar Carregamento', status: 'em_carregamento' })
-  if (viagem.status === 'em_carregamento') nextActions.push({ label: 'Confirmar Carregado', status: 'carregado' })
-  if (viagem.status === 'carregado') nextActions.push({ label: 'Iniciar Viagem', status: 'em_transito' })
+  if (isMotorista) {
+    if (viagem.status === 'carregado') {
+      nextActions.push({ label: 'Iniciar Viagem', status: 'em_transito' })
+    }
+  } else {
+    if (viagem.status === 'agendado') nextActions.push({ label: 'Iniciar Carregamento', status: 'em_carregamento' })
+    if (viagem.status === 'em_carregamento') nextActions.push({ label: 'Confirmar Carregado', status: 'carregado' })
+    if (viagem.status === 'carregado') nextActions.push({ label: 'Iniciar Viagem', status: 'em_transito' })
+  }
 
   return (
     <PageLayout
@@ -277,6 +286,12 @@ export function DetalheViagem() {
 
         {/* Ações principais */}
         <div className="space-y-3">
+          {isMotorista && ['agendado', 'aguardando_carregamento', 'em_carregamento'].includes(viagem.status) && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl py-2.5 px-3 text-center">
+              Aguardando carregamento no pátio. O operador de área irá liberar a viagem.
+            </p>
+          )}
+
           {nextActions.map((action) => (
             <Button
               key={action.status}

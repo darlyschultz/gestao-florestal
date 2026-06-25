@@ -53,15 +53,13 @@ export function MeusAgendamentos() {
   return (
     <PageLayout
       title={titulo}
-      subtitle="Complete dados e documentos antes da viagem"
+      subtitle="Horário confirmado · complete dados e gere a viagem"
       showBack
       backPath="/menu"
       rightContent={
-        user?.perfil !== 'motorista' ? (
-          <Button size="sm" onClick={() => navigate('/agendamento/calendario')}>
-            + Reservar
-          </Button>
-        ) : undefined
+        <Button size="sm" onClick={() => navigate('/agendamento/calendario')}>
+          + {user?.perfil === 'motorista' ? 'Reservar' : 'Reservar'}
+        </Button>
       }
     >
       <div className="flex gap-2 mb-4">
@@ -93,7 +91,11 @@ export function MeusAgendamentos() {
           <p className="text-gray-500 font-medium">
             {filtro === 'pendentes' ? 'Nenhum agendamento com pendências' : 'Nenhum agendamento'}
           </p>
-          {user?.perfil !== 'motorista' && (
+          {user?.perfil === 'motorista' ? (
+            <Button className="mt-4" onClick={() => navigate('/agendamento/calendario')}>
+              Reservar horário
+            </Button>
+          ) : (
             <Button className="mt-4" onClick={() => navigate('/agendamento/calendario')}>
               Reservar horários
             </Button>
@@ -144,14 +146,25 @@ export function MeusAgendamentos() {
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-forest-50 rounded-2xl text-xs text-gray-600 space-y-1">
-        <p className="font-semibold text-forest-800 flex items-center gap-1">
-          <Truck size={14} /> Fluxo de pré-agendamento
-        </p>
-        <p>1. Reserve um ou vários horários no calendário</p>
-        <p>2. Complete motorista, veículo e origem quando souber</p>
-        <p className="flex items-center gap-1"><FileText size={12} /> 3. Anexe documentos depois, antes de confirmar a viagem</p>
-      </div>
+      {user?.perfil === 'motorista' ? (
+        <div className="mt-6 p-4 bg-blue-50 rounded-2xl text-xs text-gray-600 space-y-1">
+          <p className="font-semibold text-blue-800 flex items-center gap-1">
+            <Truck size={14} /> Área do motorista
+          </p>
+          <p>1. Reserve horários — o slot fica confirmado na hora</p>
+          <p>2. Complete veículo, origem e documentos quando souber</p>
+          <p className="flex items-center gap-1"><FileText size={12} /> 3. Gere a viagem em Completar quando estiver pronto</p>
+        </div>
+      ) : (
+        <div className="mt-6 p-4 bg-forest-50 rounded-2xl text-xs text-gray-600 space-y-1">
+          <p className="font-semibold text-forest-800 flex items-center gap-1">
+            <Truck size={14} /> Fluxo de pré-agendamento
+          </p>
+          <p>1. Reserve horários — cada slot fica confirmado e bloqueado</p>
+          <p>2. Complete motorista, veículo e origem quando souber</p>
+          <p className="flex items-center gap-1"><FileText size={12} /> 3. Gere a viagem quando todos os dados estiverem OK</p>
+        </div>
+      )}
     </PageLayout>
   )
 }

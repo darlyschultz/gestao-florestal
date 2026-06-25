@@ -7,6 +7,7 @@ export async function seedRolesAndPermissions() {
     { name: 'Motorista', slug: 'motorista', description: 'Execução da viagem e geolocalização' },
     { name: 'Portaria', slug: 'portaria', description: 'Check-in e controle de fila' },
     { name: 'Operação / Balança', slug: 'operacao', description: 'Pesagem e descarga' },
+    { name: 'Operador de Área', slug: 'operador_area', description: 'Carregamento na fazenda/talhão' },
     { name: 'Gestor', slug: 'gestor', description: 'Dashboards e relatórios operacionais' },
   ]
 
@@ -36,14 +37,14 @@ export async function seedRolesAndPermissions() {
   }
 
   // Motorista
-  for (const mod of ['viagens', 'rastreamento', 'alertas'] as const) {
+  for (const mod of ['agendamento', 'viagens', 'rastreamento', 'alertas'] as const) {
     await prisma.permission.create({
       data: {
         roleId: roles.motorista.id,
         module: mod,
         canView: true,
-        canCreate: mod === 'rastreamento',
-        canEdit: mod === 'viagens',
+        canCreate: mod === 'agendamento' || mod === 'rastreamento',
+        canEdit: mod === 'viagens' || mod === 'agendamento',
         canDelete: false,
         canApprove: false,
         canBlock: false,
@@ -85,6 +86,34 @@ export async function seedRolesAndPermissions() {
       },
     })
   }
+
+  // Operador de área (carregamento na origem)
+  await prisma.permission.create({
+    data: {
+      roleId: roles.operador_area.id,
+      module: 'carregamento',
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: false,
+      canApprove: true,
+      canBlock: false,
+      canExport: false,
+    },
+  })
+  await prisma.permission.create({
+    data: {
+      roleId: roles.operador_area.id,
+      module: 'viagens',
+      canView: true,
+      canCreate: false,
+      canEdit: true,
+      canDelete: false,
+      canApprove: true,
+      canBlock: false,
+      canExport: false,
+    },
+  })
 
   // Gestor
   for (const mod of ['dashboard', 'relatorios', 'viagens', 'alertas', 'historico'] as const) {

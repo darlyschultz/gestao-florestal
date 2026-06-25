@@ -50,12 +50,13 @@ export const cadastroConfigs: Record<string, CrudConfig> = {
   motoristas: {
     title: 'Motoristas',
     apiPath: 'motoristas',
-    searchKeys: ['nome', 'cpf'],
+    searchKeys: ['nome', 'cpf', 'email'],
     listLabel: (i) => String(i.nome),
-    listSub: (i) => String(i.cpf),
+    listSub: (i) => `${i.cpf}${i.email ? ` · ${i.email}` : ''}`,
     fields: [
       { key: 'nome', label: 'Nome', required: true },
       { key: 'cpf', label: 'CPF', required: true },
+      { key: 'email', label: 'E-mail de acesso', type: 'email', required: true },
       { key: 'cnh', label: 'CNH', required: true },
       { key: 'categoriaCnh', label: 'Categoria CNH', required: true },
       { key: 'validadeCnh', label: 'Validade CNH', type: 'date', required: true },

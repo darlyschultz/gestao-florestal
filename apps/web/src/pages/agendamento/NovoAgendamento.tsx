@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Truck, User, MapPin, Trees } from 'lucide-react'
@@ -8,8 +8,16 @@ import { Input } from '../../components/ui/Input'
 import { Select } from '../../components/ui/Select'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
-import { cadastrosService } from '../../services/api'
+import { agendamentosService, cadastrosService } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 import { CACHE_TTL, getSessionCache, setSessionCache } from '../../utils/apiCache'
+import {
+  labelVeiculo,
+  listasTransporte,
+  valoresIniciaisTransporte,
+  type ContextoFormularioAgendamento,
+  type VeiculoOption,
+} from '../../utils/agendamentoFormContext'
 
 interface FormData {
   transportadoraId: string
@@ -25,9 +33,19 @@ interface FormData {
   observacoes: string
 }
 
+interface CadastrosBundle {
+  transportadoras: { id: string; nome: string }[]
+  motoristas: { id: string; nome: string; transportadoraId?: string }[]
+  veiculos: VeiculoOption[]
+  fornecedores: { id: string; nome: string }[]
+  fazendas: { id: string; nome: string; cidade: string; estado: string }[]
+  tiposMadeira: { descricao: string; codigo: string }[]
+}
+
 export function NovoAgendamento() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
 
   const dataHora = location.state?.dataHora || new Date().toISOString()
   const dtFormatted = format(new Date(dataHora), "yyyy-MM-dd'T'HH:mm")
@@ -46,49 +64,44 @@ export function NovoAgendamento() {
     observacoes: '',
   })
 
-  const [transportadoras, setTransportadoras] = useState<{ id: string; nome: string }[]>([])
-  const [motoristas, setMotoristas] = useState<{ id: string; nome: string }[]>([])
-  const [veiculos, setVeiculos] = useState<{ id: string; placa: string; tipo: string }[]>([])
+  const [bundle, setBundle] = useState<CadastrosBundle | null>(null)
+  const [ctx, setCtx] = useState<ContextoFormularioAgendamento | null>(null)
+  const [loadingCadastros, setLoadingCadastros] = useState(true)
   const [fornecedores, setFornecedores] = useState<{ id: string; nome: string }[]>([])
   const [fazendas, setFazendas] = useState<{ id: string; nome: string; cidade: string; estado: string }[]>([])
   const [talhoes, setTalhoes] = useState<{ id: string; nome: string }[]>([])
   const [tiposMadeira, setTiposMadeira] = useState<{ value: string; label: string }[]>([])
 
   useEffect(() => {
-    interface Bundle {
-      transportadoras: { id: string; nome: string }[]
-      motoristas: { id: string; nome: string }[]
-      veiculos: { id: string; placa: string; tipo: string }[]
-      fornecedores: { id: string; nome: string }[]
-      fazendas: { id: string; nome: string; cidade: string; estado: string }[]
-      tiposMadeira: { descricao: string; codigo: string }[]
-    }
+    const cached = getSessionCache<CadastrosBundle>('cadastros-agendamento')
 
-    const cached = getSessionCache<Bundle>('cadastros-agendamento')
-    if (cached) {
-      setTransportadoras(cached.transportadoras)
-      setMotoristas(cached.motoristas)
-      setVeiculos(cached.veiculos)
-      setFornecedores(cached.fornecedores)
-      setFazendas(cached.fazendas)
-      setTiposMadeira(cached.tiposMadeira.map((x) => ({ value: x.descricao, label: x.descricao })))
-      return
-    }
+    const loadBundle = cached
+      ? Promise.resolve({ data: cached })
+      : cadastrosService.bundleAgendamento().then((r) => {
+          setSessionCache('cadastros-agendamento', r.data, CACHE_TTL.cadastros)
+          return r
+        })
 
-    cadastrosService.bundleAgendamento()
-      .then(({ data }) => {
-        setTransportadoras(data.transportadoras)
-        setMotoristas(data.motoristas)
-        setVeiculos(data.veiculos)
-        setFornecedores(data.fornecedores)
-        setFazendas(data.fazendas)
-        setTiposMadeira(data.tiposMadeira.map((x: { descricao: string }) => ({
-          value: x.descricao,
-          label: x.descricao,
-        })))
-        setSessionCache('cadastros-agendamento', data, CACHE_TTL.cadastros)
+    Promise.all([loadBundle, agendamentosService.contextoFormulario().catch(() => ({ data: null }))])
+      .then(([bundleRes, ctxRes]) => {
+        const b = bundleRes.data as CadastrosBundle
+        const contexto = ctxRes.data as ContextoFormularioAgendamento | null
+        setBundle(b)
+        setCtx(contexto)
+        setFornecedores(b.fornecedores)
+        setFazendas(b.fazendas)
+        setTiposMadeira(b.tiposMadeira.map((x) => ({ value: x.descricao, label: x.descricao })))
+
+        const iniciais = valoresIniciaisTransporte(contexto)
+        setForm((f) => ({
+          ...f,
+          transportadoraId: iniciais.transportadoraId,
+          motoristaId: iniciais.motoristaId,
+          veiculoId: iniciais.veiculoId,
+        }))
       })
       .catch(console.error)
+      .finally(() => setLoadingCadastros(false))
   }, [])
 
   useEffect(() => {
@@ -99,13 +112,30 @@ export function NovoAgendamento() {
     }
   }, [form.fazendaId])
 
+  const listas = useMemo(() => {
+    if (!bundle) {
+      return { transportadoras: [], motoristas: [], veiculos: [] }
+    }
+    return listasTransporte(ctx, bundle, form.transportadoraId)
+  }, [bundle, ctx, form.transportadoraId])
+
   function update(field: keyof FormData, value: string) {
-    setForm((f) => ({ ...f, [field]: value }))
+    setForm((f) => {
+      const next = { ...f, [field]: value }
+      if (field === 'transportadoraId' && !ctx?.bloquearTransportadora) {
+        next.motoristaId = ''
+        next.veiculoId = ''
+      }
+      return next
+    })
   }
 
   function handleNext() {
     navigate('/agendamento/documentos', { state: { form } })
   }
+
+  const bloquearTransportadora = !!ctx?.bloquearTransportadora
+  const bloquearMotorista = !!ctx?.bloquearMotorista
 
   const isValid = form.transportadoraId && form.motoristaId && form.veiculoId &&
     form.fornecedorId && form.fazendaId && form.talhaoId &&
@@ -118,14 +148,31 @@ export function NovoAgendamento() {
 
   const opcoesMadeira = tiposMadeira.length > 0 ? tiposMadeira : tiposMadeiraFallback
 
+  const subtitulo =
+    user?.perfil === 'motorista'
+      ? 'Seus dados de transporte já foram preenchidos'
+      : user?.perfil === 'transportador'
+        ? 'Transportadora vinculada ao seu usuário'
+        : 'Preencha os dados da viagem'
+
   return (
     <PageLayout
       header={
-        <AppHeader title="Novo Agendamento" subtitle="Preencha os dados da viagem" showBack />
+        <AppHeader title="Novo Agendamento" subtitle={subtitulo} showBack />
       }
     >
       <div className="space-y-4 pb-4">
-        {/* Transportadora & Motorista */}
+        {(user?.perfil === 'motorista' || user?.perfil === 'transportador') && ctx?.transportadora && (
+          <Card className="bg-forest-50 border-forest-100">
+            <p className="text-xs text-forest-700">
+              {user.perfil === 'motorista'
+                ? `Logado como ${ctx.motorista?.nome || user.nome} · ${ctx.transportadora.nome}`
+                : `Transportadora: ${ctx.transportadora.nome}`}
+              {listas.veiculos.length > 1 && ' · Selecione o veículo abaixo'}
+            </p>
+          </Card>
+        )}
+
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <User size={16} className="text-forest-600" />
@@ -135,44 +182,59 @@ export function NovoAgendamento() {
             <Select
               label="Transportadora"
               required
-              placeholder="Selecione"
+              placeholder={loadingCadastros ? 'Carregando...' : 'Selecione'}
               value={form.transportadoraId}
               onChange={(e) => update('transportadoraId', e.target.value)}
-              options={transportadoras.map((t) => ({ value: t.id, label: t.nome }))}
+              options={listas.transportadoras.map((t) => ({ value: t.id, label: t.nome }))}
+              disabled={bloquearTransportadora || loadingCadastros}
             />
             <Select
               label="Motorista"
               required
-              placeholder="Selecione"
+              placeholder={loadingCadastros ? 'Carregando...' : 'Selecione'}
               value={form.motoristaId}
               onChange={(e) => update('motoristaId', e.target.value)}
-              options={motoristas.map((m) => ({ value: m.id, label: m.nome }))}
+              options={listas.motoristas.map((m) => ({ value: m.id, label: m.nome }))}
+              disabled={bloquearMotorista || loadingCadastros || !form.transportadoraId}
             />
           </div>
         </Card>
 
-        {/* Veículo */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <Truck size={16} className="text-forest-600" />
-            <h3 className="text-sm font-semibold text-gray-700">Veículo</h3>
+            <h3 className="text-sm font-semibold text-gray-700">
+              Veículo
+              {listas.veiculos.length > 1 && (
+                <span className="text-xs font-normal text-gray-400 ml-2">
+                  {listas.veiculos.length} disponíveis
+                </span>
+              )}
+            </h3>
           </div>
           <div className="space-y-3">
             <Select
               label="Placa do Cavalo / Veículo"
               required
-              placeholder="Selecione"
+              placeholder={
+                loadingCadastros
+                  ? 'Carregando...'
+                  : listas.veiculos.length === 0
+                    ? 'Nenhum veículo cadastrado'
+                    : 'Selecione'
+              }
               value={form.veiculoId}
               onChange={(e) => update('veiculoId', e.target.value)}
-              options={veiculos.map((v) => ({
+              options={listas.veiculos.map((v) => ({
                 value: v.id,
-                label: `${v.placa} - ${v.tipo}`,
+                label: labelVeiculo(v),
               }))}
+              disabled={loadingCadastros || listas.veiculos.length === 0}
             />
             <Select
               label="Tipo de Veículo"
               placeholder="Tipo"
-              value={form.veiculoId ? veiculos.find((v) => v.id === form.veiculoId)?.tipo || '' : ''}
+              value={form.veiculoId ? listas.veiculos.find((v) => v.id === form.veiculoId)?.tipo || '' : ''}
               onChange={() => {}}
               options={[
                 { value: 'bitrem', label: 'Bitrem' },
@@ -185,7 +247,6 @@ export function NovoAgendamento() {
           </div>
         </Card>
 
-        {/* Origem */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <MapPin size={16} className="text-forest-600" />
@@ -222,7 +283,6 @@ export function NovoAgendamento() {
           </div>
         </Card>
 
-        {/* Madeira */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <Trees size={16} className="text-forest-600" />
@@ -248,7 +308,6 @@ export function NovoAgendamento() {
           </div>
         </Card>
 
-        {/* Datas */}
         <Card>
           <div className="flex items-center gap-2 mb-3">
             <Truck size={16} className="text-forest-600" />
@@ -272,7 +331,6 @@ export function NovoAgendamento() {
           </div>
         </Card>
 
-        {/* Observações */}
         <Card>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Observações</label>
           <textarea
@@ -287,7 +345,7 @@ export function NovoAgendamento() {
         <Button
           fullWidth
           size="lg"
-          disabled={!isValid}
+          disabled={!isValid || loadingCadastros}
           onClick={handleNext}
         >
           Avançar para Documentos →

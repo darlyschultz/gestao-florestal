@@ -25,6 +25,7 @@ import { RastreamentoMapa } from './pages/viagens/RastreamentoMapa'
 import { AlertasViagem } from './pages/viagens/AlertasViagem'
 import { HistoricoViagem } from './pages/viagens/HistoricoViagem'
 import { MapaFrota } from './pages/mapa/MapaFrota'
+import { CarregamentoArea } from './pages/area/CarregamentoArea'
 
 // Portaria
 import { PortariaPage } from './pages/portaria/PortariaPage'
@@ -73,6 +74,20 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function PerfilRoute({
+  children,
+  allowedPerfis,
+}: {
+  children: React.ReactNode
+  allowedPerfis: string[]
+}) {
+  const { user } = useAuth()
+  if (!user || !allowedPerfis.includes(user.perfil)) {
+    return <Navigate to="/menu" replace />
+  }
+  return <>{children}</>
+}
+
 function AppRoutes() {
   const { user } = useAuth()
 
@@ -112,8 +127,29 @@ function AppRoutes() {
       <Route path="/viagens/:id/alertas" element={<PrivateRoute><AlertasViagem /></PrivateRoute>} />
       <Route path="/viagens/:id/historico" element={<PrivateRoute><HistoricoViagem /></PrivateRoute>} />
 
-      {/* Mapa frota */}
-      <Route path="/mapa" element={<PrivateRoute><MapaFrota /></PrivateRoute>} />
+      {/* Mapa frota — motorista não tem acesso */}
+      <Route
+        path="/mapa"
+        element={
+          <PrivateRoute>
+            <PerfilRoute allowedPerfis={['admin', 'transportador', 'portaria', 'operacao', 'gestor']}>
+              <MapaFrota />
+            </PerfilRoute>
+          </PrivateRoute>
+        }
+      />
+
+      {/* Carregamento na área */}
+      <Route
+        path="/area/carregamento"
+        element={
+          <PrivateRoute>
+            <PerfilRoute allowedPerfis={['operador_area', 'admin', 'gestor']}>
+              <CarregamentoArea />
+            </PerfilRoute>
+          </PrivateRoute>
+        }
+      />
 
       {/* Portaria */}
       <Route path="/portaria" element={<PrivateRoute><PortariaPage /></PrivateRoute>} />

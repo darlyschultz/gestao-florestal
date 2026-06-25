@@ -22,6 +22,7 @@ import usuariosRoutes from './routes/usuarios'
 import perfisRoutes from './routes/perfis'
 import camposRoutes from './routes/campos'
 import auditoriaRoutes from './routes/auditoria'
+import carregamentosRoutes from './routes/carregamentos'
 
 export function createApp() {
   const app = express()
@@ -50,6 +51,7 @@ export function createApp() {
   app.use('/api/usuarios', usuariosRoutes)
   app.use('/api/perfis', perfisRoutes)
   app.use('/api/auditoria', auditoriaRoutes)
+  app.use('/api/carregamentos', carregamentosRoutes)
 
   app.get('/api/health', async (_req, res) => {
     try {

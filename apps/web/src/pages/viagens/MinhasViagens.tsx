@@ -10,6 +10,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { Input } from '../../components/ui/Input'
 import { Viagem } from '../../types'
 import { viagensService } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 
 const FILTERS = [
   { label: 'Todas', value: 'todos' },
@@ -116,6 +117,8 @@ const MOCK_VIAGENS: Viagem[] = [
 
 export function MinhasViagens() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isMotorista = user?.perfil === 'motorista'
   const [filter, setFilter] = useState('todos')
   const [search, setSearch] = useState('')
   const [viagens, setViagens] = useState<Viagem[]>([])
@@ -143,8 +146,8 @@ export function MinhasViagens() {
     <PageLayout
       header={
         <AppHeader
-          title="Minhas Viagens"
-          subtitle="Acompanhe suas entregas"
+          title={isMotorista ? 'Minhas Viagens' : 'Entrega de Madeira'}
+          subtitle={isMotorista ? 'Suas entregas em andamento' : 'Acompanhe todas as viagens'}
           showBack
           backPath="/menu"
         />
@@ -153,7 +156,7 @@ export function MinhasViagens() {
       {/* Filtros */}
       <div className="mb-4 space-y-3">
         <Input
-          placeholder="Buscar por número, placa ou motorista..."
+          placeholder={isMotorista ? 'Buscar por número ou placa...' : 'Buscar por número, placa ou motorista...'}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           leftIcon={<Search size={16} />}

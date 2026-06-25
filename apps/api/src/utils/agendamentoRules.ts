@@ -220,7 +220,7 @@ export async function getDisponibilidadeDia(dataStr: string): Promise<Disponibil
       horarioFinal: fim,
       slots: slots.map((horario) => {
         const ocupados = counts.get(horario) || 0
-        return { horario, ocupados, capacidade, disponivel: ocupados < capacidade }
+        return { horario, ocupados, capacidade, disponivel: ocupados === 0 }
       }),
     }
   }
@@ -260,7 +260,7 @@ export async function getDisponibilidadeDia(dataStr: string): Promise<Disponibil
         return m >= parseHorario(j.horarioInicial) && m < parseHorario(j.horarioFinal)
       })
       const capSlot = cap?.capacidadePorHorario || settings.maxTrucksPerSlot
-      return { horario, ocupados, capacidade: capSlot, disponivel: ocupados < capSlot }
+      return { horario, ocupados, capacidade: capSlot, disponivel: ocupados === 0 }
     }),
   }
   })
@@ -287,10 +287,10 @@ export async function validarHorariosLote(
     }
 
     const extra = reservasPendentes.get(horario) || 0
-    if (slot.ocupados + extra >= slot.capacidade) {
+    if (slot.ocupados + extra > 0) {
       return {
         ok: false,
-        error: `Horário ${horario} atingiu a capacidade máxima (${slot.capacidade} caminhões)`,
+        error: `Horário ${horario} já está reservado`,
       }
     }
 

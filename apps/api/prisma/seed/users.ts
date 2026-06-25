@@ -5,9 +5,10 @@ interface SeedUsersParams {
   roles: Record<string, { id: string; slug: string }>
   unidadeId: string
   transportadoraId: string
+  fazendaId: string
 }
 
-export async function seedUsers({ roles, unidadeId, transportadoraId }: SeedUsersParams) {
+export async function seedUsers({ roles, unidadeId, transportadoraId, fazendaId }: SeedUsersParams) {
   const senhaHash = await bcrypt.hash('123456', 10)
 
   const userAdmin = await prisma.user.create({
@@ -69,7 +70,7 @@ export async function seedUsers({ roles, unidadeId, transportadoraId }: SeedUser
   const userMotorista = await prisma.user.create({
     data: {
       nome: 'João Carlos da Silva',
-      email: 'motorista@florestal.com',
+      email: 'joao.carlos@transfloresta.com.br',
       senha: senhaHash,
       perfil: 'motorista',
       roleId: roles.motorista.id,
@@ -92,7 +93,20 @@ export async function seedUsers({ roles, unidadeId, transportadoraId }: SeedUser
     },
   })
 
-  console.log('✅ Usuários criados (6 perfis)')
+  const userOperadorArea = await prisma.user.create({
+    data: {
+      nome: 'Pedro Mendes',
+      email: 'operador.area@florestal.com',
+      senha: senhaHash,
+      perfil: 'operador_area',
+      roleId: roles.operador_area.id,
+      telefone: '(11) 94444-0006',
+      cargo: 'Operador de Área — Carregamento',
+      fazendaId,
+    },
+  })
 
-  return { userAdmin, userTransp, userPortaria, userOperacao, userMotorista, userGestor }
+  console.log('✅ Usuários criados (7 perfis)')
+
+  return { userAdmin, userTransp, userPortaria, userOperacao, userMotorista, userGestor, userOperadorArea }
 }

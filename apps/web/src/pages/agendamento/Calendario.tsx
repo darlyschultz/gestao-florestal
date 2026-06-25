@@ -14,6 +14,7 @@ import { useAgendamentoRegras, diaPermiteAgendamento } from '../../hooks/useAgen
 import type { DisponibilidadeDia } from '../../hooks/useAgendamentoRegras'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
 import { useAuth } from '../../contexts/AuthContext'
+import { HorarioSlotButton, HorariosLegenda } from '../../components/agendamento/HorarioSlotButton'
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 
@@ -70,57 +71,25 @@ function HorariosGrid({ disponibilidade, loading, selectedSlots, onToggleSlot, c
         <p className="text-xs text-gray-500">
           Janela {disponibilidade.horarioInicial}–{disponibilidade.horarioFinal}
           {' · '}{disponibilidade.intervaloMinutos} min
-          {' · '}até {disponibilidade.capacidadePorHorario} caminhões/slot
+          {' · '}1 reserva por horário
         </p>
       )}
       <div className="space-y-1.5">
         {rows.map((row, ri) => (
           <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-            {row.map((slot) => {
-              const isOcupado = !slot.disponivel
-              const isSelected = selectedSlots.has(slot.horario)
-              const quaseLotado = slot.disponivel && slot.ocupados > 0
-
-              return (
-                <button
-                  key={slot.horario}
-                  type="button"
-                  disabled={isOcupado}
-                  onClick={() => onToggleSlot(slot.horario)}
-                  title={
-                    isOcupado
-                      ? `Lotado (${slot.ocupados}/${slot.capacidade})`
-                      : quaseLotado
-                        ? `${slot.ocupados}/${slot.capacidade} agendados`
-                        : undefined
-                  }
-                  className={`
-                    py-2 rounded-lg text-xs font-semibold transition-all
-                    ${isOcupado
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed line-through opacity-70'
-                      : isSelected
-                        ? 'bg-forest-700 text-white shadow-md'
-                        : quaseLotado
-                          ? 'bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200'
-                          : 'bg-gray-50 text-gray-600 hover:bg-forest-50 hover:text-forest-700 border border-gray-100'
-                    }
-                  `}
-                >
-                  {slot.horario}
-                </button>
-              )
-            })}
+            {row.map((slot) => (
+              <HorarioSlotButton
+                key={slot.horario}
+                slot={slot}
+                selected={selectedSlots.has(slot.horario)}
+                onToggle={onToggleSlot}
+                className="py-2 rounded-lg"
+              />
+            ))}
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500 pt-1">
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border" /> Disponível</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-yellow-100 border border-yellow-300" /> Parcial</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-200" /> Lotado</span>
-        {multi && (
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-forest-700" /> Selecionados</span>
-        )}
-      </div>
+      <HorariosLegenda multi={multi} />
     </div>
   )
 }

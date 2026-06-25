@@ -1,5 +1,5 @@
 import { Router, Response } from 'express'
-import { authMiddleware, AuthRequest } from '../middleware/auth'
+import { authMiddleware, AuthRequest, requirePerfil } from '../middleware/auth'
 import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { prisma } from '../lib/prisma'
 import { viagemListInclude } from '../lib/queryIncludes'
@@ -51,8 +51,11 @@ const includeMapa = {
   alertas: { where: { lido: false }, select: { id: true } },
 }
 
-/** Frota em trânsito para mapa operacional */
-router.get('/rastreamento/mapa', async (_req: AuthRequest, res: Response) => {
+/** Frota em trânsito para mapa operacional (motorista não tem acesso) */
+router.get(
+  '/rastreamento/mapa',
+  requirePerfil('admin', 'transportador', 'portaria', 'operacao', 'gestor'),
+  async (_req: AuthRequest, res: Response) => {
   try {
     const [settings, viagens] = await Promise.all([
       prisma.systemSettings.findFirst(),
@@ -117,6 +120,16 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     if (status && status !== 'todos') where.status = status
 
+    if (req.user!.perfil === 'motorista') {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+        select: { motoristaCadastroId: true },
+      })
+      if (user?.motoristaCadastroId) {
+        where.motoristaId = user.motoristaCadastroId
+      }
+    }
+
     const viagens = await prisma.viagem.findMany({
       where,
       include: viagemListInclude,
@@ -151,6 +164,19 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
 
     const viagem = await prisma.viagem.findUnique({ where: { id: req.params.id } })
     if (!viagem) return res.status(404).json({ error: 'Viagem não encontrada' })
+
+    if (req.user!.perfil === 'motorista') {
+      const permitido = viagem.status === 'carregado' && status === 'em_transito'
+      if (!permitido) {
+        return res.status(403).json({
+          error: 'O carregamento é feito pelo operador de área. Aguarde a liberação para iniciar a viagem.',
+        })
+      }
+    }
+
+    if (req.user!.perfil === 'operador_area') {
+      return res.status(403).json({ error: 'Use as ações de carregamento na área operacional' })
+    }
 
     const atualizada = await prisma.viagem.update({
       where: { id: req.params.id },

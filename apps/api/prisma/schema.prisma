@@ -91,7 +91,7 @@ model User {
   nome             String
   email            String    @unique
   senha            String
-  perfil           String    // legado: admin | transportador | motorista | portaria | operacao | gestor
+  perfil           String    // legado: admin | transportador | motorista | portaria | operacao | gestor | operador_area
   roleId           String?
   telefone         String?
   cargo            String?
@@ -103,6 +103,7 @@ model User {
   ativo            Boolean   @default(true)
   transportadoraId String?
   unidadeId        String?
+  fazendaId        String?
   motoristaCadastroId String?
   deletedAt        DateTime?
   createdAt        DateTime  @default(now())
@@ -111,6 +112,7 @@ model User {
   role           Role?           @relation(fields: [roleId], references: [id])
   transportadora Transportadora? @relation(fields: [transportadoraId], references: [id])
   unidade        Unidade?        @relation(fields: [unidadeId], references: [id])
+  fazenda        Fazenda?        @relation(fields: [fazendaId], references: [id])
   motoristaCadastro Motorista?   @relation(fields: [motoristaCadastroId], references: [id])
   agendamentos   Agendamento[]
   eventos        EventoViagem[]
@@ -283,6 +285,7 @@ model Fazenda {
   fornecedor   Fornecedor @relation(fields: [fornecedorId], references: [id])
   talhoes      Talhao[]
   agendamentos Agendamento[]
+  operadores   User[]
 
   @@map("fazendas")
 }

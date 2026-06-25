@@ -12,6 +12,7 @@ const PERFIS = [
   { value: 'transportador', label: 'Transportador' },
   { value: 'portaria', label: 'Portaria' },
   { value: 'operacao', label: 'Operação' },
+  { value: 'operador_area', label: 'Operador de Área' },
   { value: 'motorista', label: 'Motorista' },
   { value: 'gestor', label: 'Gestor' },
 ]
@@ -24,6 +25,7 @@ export function UsuariosAdmin() {
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null)
   const [form, setForm] = useState<Record<string, string>>({})
   const [transportadoras, setTransportadoras] = useState<{ value: string; label: string }[]>([])
+  const [fazendas, setFazendas] = useState<{ value: string; label: string }[]>([])
   const [roles, setRoles] = useState<{ value: string; label: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -31,13 +33,15 @@ export function UsuariosAdmin() {
   async function load() {
     setLoading(true)
     try {
-      const [usersRes, transpRes, rolesRes] = await Promise.all([
+      const [usersRes, transpRes, fazRes, rolesRes] = await Promise.all([
         usuariosService.list(),
         cadastrosService.transportadoras(),
+        cadastrosService.fazendas(),
         perfisService.list(),
       ])
       setUsers(usersRes.data)
       setTransportadoras(transpRes.data.map((t: { id: string; nome: string }) => ({ value: t.id, label: t.nome })))
+      setFazendas(fazRes.data.map((f: { id: string; nome: string }) => ({ value: f.id, label: f.nome })))
       setRoles(rolesRes.data.map((r: { id: string; name: string }) => ({ value: r.id, label: r.name })))
     } finally {
       setLoading(false)
@@ -61,6 +65,7 @@ export function UsuariosAdmin() {
       cargo: String(u.cargo || ''),
       perfil: String(u.perfil || ''),
       transportadoraId: String(u.transportadoraId || ''),
+      fazendaId: String(u.fazendaId || ''),
       roleId: String(u.roleId || ''),
     })
     setShowForm(true)
@@ -155,6 +160,9 @@ export function UsuariosAdmin() {
               <Select label="Perfil" required options={PERFIS} value={form.perfil || ''} onChange={(e) => setForm({ ...form, perfil: e.target.value })} />
               <Select label="Perfil RBAC" options={roles} value={form.roleId || ''} onChange={(e) => setForm({ ...form, roleId: e.target.value })} placeholder="Selecione perfil" />
               <Select label="Transportadora" options={transportadoras} value={form.transportadoraId || ''} onChange={(e) => setForm({ ...form, transportadoraId: e.target.value })} placeholder="Opcional" />
+              {form.perfil === 'operador_area' && (
+                <Select label="Fazenda (área de carregamento)" required options={fazendas} value={form.fazendaId || ''} onChange={(e) => setForm({ ...form, fazendaId: e.target.value })} placeholder="Selecione a fazenda" />
+              )}
               <Input label="Telefone" value={form.telefone || ''} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
               <Input label="Cargo" value={form.cargo || ''} onChange={(e) => setForm({ ...form, cargo: e.target.value })} />
             </div>

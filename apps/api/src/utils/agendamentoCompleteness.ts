@@ -32,13 +32,16 @@ export function calcularPendencias(
     }
   }
 
-  if (regras.requireNf && !documentos.some((d) => d.tipo === 'nota_fiscal' && d.numero)) {
+  const docOk = (tipo: string) =>
+    documentos.some((d) => d.tipo === tipo && (Boolean(d.numero) || Boolean(d.arquivo)))
+
+  if (regras.requireNf && !docOk('nota_fiscal')) {
     pendencias.push({ key: 'nota_fiscal', label: 'Nota Fiscal', grupo: 'documentos' })
   }
-  if (regras.requireMdfe && !documentos.some((d) => d.tipo === 'mdfe' && d.numero)) {
+  if (regras.requireMdfe && !docOk('mdfe')) {
     pendencias.push({ key: 'mdfe', label: 'MDF-e', grupo: 'documentos' })
   }
-  if (regras.requireLoadingOrder && !documentos.some((d) => d.tipo === 'ordem_carregamento' && d.numero)) {
+  if (regras.requireLoadingOrder && !docOk('ordem_carregamento')) {
     pendencias.push({ key: 'ordem_carregamento', label: 'Ordem de carregamento', grupo: 'documentos' })
   }
 

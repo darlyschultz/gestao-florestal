@@ -2,6 +2,7 @@ import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest, requirePerfil } from '../middleware/auth'
 import { httpCacheMiddleware, invalidateCachePrefix } from '../middleware/httpCache'
 import { logAudit } from '../utils/audit'
+import { syncMotoristaUser, validateMotoristaEmail } from '../utils/motoristaUser'
 import { prisma } from '../lib/prisma'
 
 const router = Router()
@@ -137,18 +138,42 @@ router.get('/motoristas/:id', async (req, res: Response) => {
   return res.json(data)
 })
 router.post('/motoristas', adminOnly, async (req: AuthRequest, res: Response) => {
-  const body = { ...req.body }
-  if (body.validadeCnh) body.validadeCnh = new Date(body.validadeCnh)
-  const data = await prisma.motorista.create({ data: { ...body, ativo: true, active: true } })
-  await logAudit(req, { entityType: 'motorista', entityId: data.id, action: 'create', newValue: data })
-  return res.status(201).json(data)
+  try {
+    const body = { ...req.body }
+    const emailCheck = await validateMotoristaEmail(body.email)
+    if (!emailCheck.ok) return res.status(400).json({ error: emailCheck.error })
+    body.email = emailCheck.email
+
+    if (body.validadeCnh) body.validadeCnh = new Date(body.validadeCnh)
+    const data = await prisma.motorista.create({ data: { ...body, ativo: true, active: true } })
+    await syncMotoristaUser(data.id)
+    await logAudit(req, { entityType: 'motorista', entityId: data.id, action: 'create', newValue: data })
+    return res.status(201).json(data)
+  } catch (error) {
+    console.error(error)
+    const msg = error instanceof Error ? error.message : 'Erro ao criar motorista'
+    return res.status(400).json({ error: msg })
+  }
 })
 router.put('/motoristas/:id', adminOnly, async (req: AuthRequest, res: Response) => {
-  const body = { ...req.body }
-  if (body.validadeCnh) body.validadeCnh = new Date(body.validadeCnh)
-  const data = await prisma.motorista.update({ where: { id: req.params.id }, data: body })
-  await logAudit(req, { entityType: 'motorista', entityId: data.id, action: 'update', newValue: data })
-  return res.json(data)
+  try {
+    const body = { ...req.body }
+    if (body.email !== undefined) {
+      const emailCheck = await validateMotoristaEmail(body.email, req.params.id)
+      if (!emailCheck.ok) return res.status(400).json({ error: emailCheck.error })
+      body.email = emailCheck.email
+    }
+
+    if (body.validadeCnh) body.validadeCnh = new Date(body.validadeCnh)
+    const data = await prisma.motorista.update({ where: { id: req.params.id }, data: body })
+    if (data.email) await syncMotoristaUser(data.id)
+    await logAudit(req, { entityType: 'motorista', entityId: data.id, action: 'update', newValue: data })
+    return res.json(data)
+  } catch (error) {
+    console.error(error)
+    const msg = error instanceof Error ? error.message : 'Erro ao atualizar motorista'
+    return res.status(400).json({ error: msg })
+  }
 })
 router.delete('/motoristas/:id', adminOnly, (req, res) =>
   softDelete(req, res, 'motorista', prisma.motorista, req.params.id)
