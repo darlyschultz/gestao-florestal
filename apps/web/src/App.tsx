@@ -24,6 +24,7 @@ import { DetalheViagem } from './pages/viagens/DetalheViagem'
 import { RastreamentoMapa } from './pages/viagens/RastreamentoMapa'
 import { AlertasViagem } from './pages/viagens/AlertasViagem'
 import { HistoricoViagem } from './pages/viagens/HistoricoViagem'
+import { MapaFrota } from './pages/mapa/MapaFrota'
 
 // Portaria
 import { PortariaPage } from './pages/portaria/PortariaPage'
@@ -110,6 +111,9 @@ function AppRoutes() {
       <Route path="/viagens/:id/mapa" element={<PrivateRoute><RastreamentoMapa /></PrivateRoute>} />
       <Route path="/viagens/:id/alertas" element={<PrivateRoute><AlertasViagem /></PrivateRoute>} />
       <Route path="/viagens/:id/historico" element={<PrivateRoute><HistoricoViagem /></PrivateRoute>} />
+
+      {/* Mapa frota */}
+      <Route path="/mapa" element={<PrivateRoute><MapaFrota /></PrivateRoute>} />
 
       {/* Portaria */}
       <Route path="/portaria" element={<PrivateRoute><PortariaPage /></PrivateRoute>} />

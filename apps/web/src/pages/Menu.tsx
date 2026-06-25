@@ -49,9 +49,9 @@ const menuItems: MenuItem[] = [
   },
   {
     title: 'Rastreamento',
-    description: 'Posição em tempo real',
+    description: 'Mapa da frota em trânsito',
     icon: <Map size={24} />,
-    to: '/viagens',
+    to: '/mapa',
     color: 'text-teal-700',
     bg: 'bg-teal-100',
   },

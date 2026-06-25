@@ -39,6 +39,77 @@ router.use((req, res, next) => {
 
 router.use(httpCacheMiddleware(8, 'viagens:'))
 
+const includeMapa = {
+  motorista: { select: { id: true, nome: true, telefone: true } },
+  veiculo: { select: { id: true, placa: true, tipo: true } },
+  transportadora: { select: { id: true, nome: true } },
+  agendamento: {
+    select: {
+      fazenda: { select: { id: true, nome: true, cidade: true, estado: true } },
+    },
+  },
+  alertas: { where: { lido: false }, select: { id: true } },
+}
+
+/** Frota em trânsito para mapa operacional */
+router.get('/rastreamento/mapa', async (_req: AuthRequest, res: Response) => {
+  try {
+    const [settings, viagens] = await Promise.all([
+      prisma.systemSettings.findFirst(),
+      prisma.viagem.findMany({
+        where: {
+          status: { in: ['em_transito', 'proximo_fabrica', 'carregado'] },
+        },
+        include: includeMapa,
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ])
+
+    const veiculos = viagens
+      .map((v) => {
+        const lat = v.latAtual ?? v.latEmbarque
+        const lng = v.lngAtual ?? v.lngEmbarque
+        if (lat == null || lng == null) return null
+
+        return {
+          id: v.id,
+          numero: v.numero,
+          status: v.status,
+          placa: v.veiculo.placa,
+          motorista: v.motorista.nome,
+          transportadora: v.transportadora.nome,
+          fazenda: v.agendamento?.fazenda?.nome,
+          lat,
+          lng,
+          latEmbarque: v.latEmbarque,
+          lngEmbarque: v.lngEmbarque,
+          distanciaRestanteKm: v.distanciaRestanteKm,
+          tempoRestanteMin: v.tempoRestanteMin,
+          alertasCount: v.alertas.length,
+          updatedAt: v.updatedAt,
+        }
+      })
+      .filter(Boolean)
+
+    res.set('Cache-Control', 'private, max-age=15')
+    return res.json({
+      fabrica:
+        settings?.factoryLatitude != null && settings?.factoryLongitude != null
+          ? {
+              lat: settings.factoryLatitude,
+              lng: settings.factoryLongitude,
+              label: settings.unitName || 'Fábrica',
+            }
+          : null,
+      veiculos,
+      total: veiculos.length,
+    })
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao buscar frota no mapa' })
+  }
+})
+
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const { status } = req.query

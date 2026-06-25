@@ -60,6 +60,7 @@ export const agendamentosService = {
 // Viagens
 export const viagensService = {
   list: (params?: object) => api.get('/api/viagens', { params }),
+  mapaFrota: () => api.get('/api/viagens/rastreamento/mapa'),
   get: (id: string) => api.get(`/api/viagens/${id}`),
   updateStatus: (id: string, data: object) => api.put(`/api/viagens/${id}/status`, data),
   historico: (id: string) => api.get(`/api/viagens/${id}/historico`),

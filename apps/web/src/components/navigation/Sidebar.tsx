@@ -1,7 +1,7 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  Home, Calendar, Truck, MapPin, BarChart2, Building2,
+  Home, Calendar, Truck, MapPin, Map, BarChart2, Building2,
   Settings, FileBarChart, LogOut, Clock,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -18,6 +18,7 @@ const mainNav: NavItem[] = [
   { to: '/agendamento/calendario', icon: Calendar, label: 'Agendamento', perfis: ['admin', 'transportador'] },
   { to: '/agendamento/meus', icon: Clock, label: 'Meus Horários', perfis: ['admin', 'transportador', 'motorista'] },
   { to: '/viagens', icon: Truck, label: 'Viagens' },
+  { to: '/mapa', icon: Map, label: 'Mapa / Frota' },
   { to: '/portaria', icon: MapPin, label: 'Portaria', perfis: ['admin', 'portaria'] },
   { to: '/fila-patio', icon: Truck, label: 'Fila / Pátio', perfis: ['admin', 'portaria', 'operacao'] },
   { to: '/dashboard', icon: BarChart2, label: 'Dashboard', perfis: ['admin', 'operacao', 'gestor'] },
