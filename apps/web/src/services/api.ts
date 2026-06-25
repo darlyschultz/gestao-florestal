@@ -47,8 +47,13 @@ export const agendamentosService = {
   get: (id: string) => api.get(`/api/agendamentos/${id}`),
   pendencias: (id: string) => api.get(`/api/agendamentos/${id}/pendencias`),
   create: (data: object) => api.post('/api/agendamentos', data),
-  preAgendar: (data: { transportadoraId?: string; horarios: string[]; motoristaId?: string; veiculoId?: string }) =>
-    api.post('/api/agendamentos/pre-agendar', data),
+  preAgendar: (data: {
+    data: string
+    horarios: string[]
+    transportadoraId?: string
+    motoristaId?: string
+    veiculoId?: string
+  }) => api.post('/api/agendamentos/pre-agendar', data),
   update: (id: string, data: object) => api.put(`/api/agendamentos/${id}`, data),
   confirmar: (id: string, data?: object) => api.post(`/api/agendamentos/${id}/confirmar`, data),
   listDocumentos: (id: string) => api.get(`/api/agendamentos/${id}/documentos`),

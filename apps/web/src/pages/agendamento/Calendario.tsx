@@ -8,12 +8,27 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { Button } from '../../components/ui/Button'
-import { agendamentosService } from '../../services/api'
+import { Select } from '../../components/ui/Select'
+import { agendamentosService, cadastrosService } from '../../services/api'
 import { useAgendamentoRegras, diaPermiteAgendamento } from '../../hooks/useAgendamentoRegras'
 import type { DisponibilidadeDia } from '../../hooks/useAgendamentoRegras'
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout'
+import { useAuth } from '../../contexts/AuthContext'
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
+
+function sortHorarios(horarios: string[]): string[] {
+  return [...horarios].sort((a, b) => {
+    const [ah, am] = a.split(':').map(Number)
+    const [bh, bm] = b.split(':').map(Number)
+    return ah * 60 + (am || 0) - (bh * 60 + (bm || 0))
+  })
+}
+
+function apiErrorMessage(err: unknown, fallback: string): string {
+  const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+  return msg || fallback
+}
 
 interface HorariosGridProps {
   disponibilidade: DisponibilidadeDia | null
@@ -112,6 +127,7 @@ function HorariosGrid({ disponibilidade, loading, selectedSlots, onToggleSlot, c
 
 export function Calendario() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { regras, loading: loadingRegras } = useAgendamentoRegras()
   const { isDesktop } = useResponsiveLayout()
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -121,6 +137,20 @@ export function Calendario() {
   const [loadingHorarios, setLoadingHorarios] = useState(false)
   const [reservando, setReservando] = useState(false)
   const [resumoMes, setResumoMes] = useState<Record<string, { total: number; incompletos: number }>>({})
+  const [transportadoras, setTransportadoras] = useState<{ value: string; label: string }[]>([])
+  const [transportadoraId, setTransportadoraId] = useState('')
+
+  const precisaTransportadora = Boolean(
+    user && !user.transportadoraId && ['admin', 'gestor', 'operacao'].includes(user.perfil),
+  )
+
+  useEffect(() => {
+    if (!precisaTransportadora) return
+    cadastrosService
+      .transportadoras(true)
+      .then((r) => setTransportadoras(r.data.map((t: { id: string; nome: string }) => ({ value: t.id, label: t.nome }))))
+      .catch(() => setTransportadoras([]))
+  }, [precisaTransportadora])
 
   useEffect(() => {
     const mes = format(currentMonth, 'yyyy-MM')
@@ -187,18 +217,20 @@ export function Calendario() {
 
   async function handleReservarHorarios() {
     if (!selectedDate || selectedSlots.size === 0) return
+    if (precisaTransportadora && !transportadoraId) {
+      alert('Selecione a transportadora antes de reservar.')
+      return
+    }
     setReservando(true)
     try {
-      const horarios = [...selectedSlots].map((slot) => {
-        const [h, m] = slot.split(':').map(Number)
-        const dt = new Date(selectedDate)
-        dt.setHours(h, m, 0, 0)
-        return dt.toISOString()
+      await agendamentosService.preAgendar({
+        data: format(selectedDate, 'yyyy-MM-dd'),
+        horarios: sortHorarios([...selectedSlots]),
+        transportadoraId: transportadoraId || undefined,
       })
-      await agendamentosService.preAgendar({ horarios })
       navigate('/agendamento/meus')
-    } catch {
-      alert('Erro ao reservar horários. Verifique disponibilidade.')
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Erro ao reservar horários. Verifique disponibilidade.'))
     } finally {
       setReservando(false)
     }
@@ -371,6 +403,15 @@ export function Calendario() {
 
             {selectedSlots.size > 0 && (
               <div className="pt-2 border-t border-gray-100 space-y-3">
+                {precisaTransportadora && (
+                  <Select
+                    label="Transportadora"
+                    options={transportadoras}
+                    value={transportadoraId}
+                    onChange={(e) => setTransportadoraId(e.target.value)}
+                    placeholder="Selecione a transportadora"
+                  />
+                )}
                 <div className="text-sm">
                   <span className="text-gray-500">{selectedSlots.size} horário(s) selecionado(s)</span>
                   <p className="text-xs text-gray-400 mt-1">

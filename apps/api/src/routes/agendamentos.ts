@@ -6,6 +6,12 @@ import {
   getRegrasAgendamento,
   getDisponibilidadeDia,
   validarHorarioAgendamento,
+  validarHorariosLote,
+  parseDataHorarioSlot,
+  normalizeHorario,
+  dataStrFromDate,
+  horarioFromDate,
+  invalidateDisponibilidadeCache,
 } from '../utils/agendamentoRules'
 import {
   dadosOperacionaisCompletos,
@@ -28,11 +34,10 @@ const include = {
 }
 
 function gerarNumero(prefix = 'AGD') {
-  return `${prefix}-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}-${String(Math.floor(Math.random() * 100)).padStart(2, '0')}`
+  return `${prefix}-${new Date().getFullYear()}-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`
 }
 
-async function getTransportadoraIdUsuario(userId: string, perfil: string) {
-  if (perfil !== 'transportador' && perfil !== 'motorista') return undefined
+async function getTransportadoraIdUsuario(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { transportadoraId: true },
@@ -180,8 +185,9 @@ router.get('/motorista/contexto', async (req: AuthRequest, res: Response) => {
 /** Pré-reserva de um ou vários horários (fecha slot, completa dados depois) */
 router.post('/pre-agendar', async (req: AuthRequest, res: Response) => {
   try {
-    const { transportadoraId, horarios, motoristaId, veiculoId } = req.body as {
+    const { transportadoraId, data, horarios, motoristaId, veiculoId } = req.body as {
       transportadoraId?: string
+      data?: string
       horarios?: string[]
       motoristaId?: string
       veiculoId?: string
@@ -192,7 +198,7 @@ router.post('/pre-agendar', async (req: AuthRequest, res: Response) => {
     }
 
     let transpId = transportadoraId
-    const userTransp = await getTransportadoraIdUsuario(req.user!.id, req.user!.perfil)
+    const userTransp = await getTransportadoraIdUsuario(req.user!.id)
     if (userTransp) transpId = userTransp
     if (!transpId) {
       return res.status(400).json({ error: 'Informe a transportadora' })
@@ -205,34 +211,77 @@ router.post('/pre-agendar', async (req: AuthRequest, res: Response) => {
       if (user?.motoristaCadastroId) motId = user.motoristaCadastroId
     }
 
-    for (const h of horarios) {
-      const validacao = await validarHorarioAgendamento(h)
+    type SlotReserva = { dataStr: string; horario: string; dateTime: Date }
+    const slotsReserva: SlotReserva[] = []
+
+    if (data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      for (const h of horarios) {
+        slotsReserva.push({
+          dataStr: data,
+          horario: normalizeHorario(h),
+          dateTime: parseDataHorarioSlot(data, h),
+        })
+      }
+    } else {
+      for (const iso of horarios) {
+        const dt = new Date(iso)
+        if (Number.isNaN(dt.getTime())) {
+          return res.status(400).json({ error: `Horário inválido: ${iso}` })
+        }
+        const dataStr = dataStrFromDate(dt)
+        const horario = horarioFromDate(dt)
+        slotsReserva.push({
+          dataStr,
+          horario,
+          dateTime: parseDataHorarioSlot(dataStr, horario),
+        })
+      }
+    }
+
+    const porDia = new Map<string, string[]>()
+    for (const slot of slotsReserva) {
+      const lista = porDia.get(slot.dataStr) || []
+      lista.push(slot.horario)
+      porDia.set(slot.dataStr, lista)
+    }
+
+    for (const [dataStr, hrs] of porDia) {
+      const validacao = await validarHorariosLote(dataStr, hrs)
       if (!validacao.ok) {
-        return res.status(400).json({ error: `${h}: ${validacao.error}` })
+        return res.status(400).json({ error: validacao.error })
       }
     }
 
     const grupoReservaId = randomUUID()
-    const criados = []
+    const regras = await getRegrasAgendamento()
 
-    for (const dataHoraSaidaPrevista of horarios) {
-      const ag = await prisma.agendamento.create({
-        data: {
-          numero: gerarNumero(),
-          transportadoraId: transpId,
-          motoristaId: motId || null,
-          veiculoId: veicId || null,
-          dataHoraSaidaPrevista: new Date(dataHoraSaidaPrevista),
-          status: 'pre_agendado',
-          grupoReservaId,
-          userId: req.user!.id,
-        },
-        include,
-      })
-      criados.push(enriquecerAgendamento(ag, await getRegrasAgendamento()))
+    const criados = await prisma.$transaction(
+      slotsReserva.map((slot) =>
+        prisma.agendamento.create({
+          data: {
+            numero: gerarNumero(),
+            transportadoraId: transpId!,
+            motoristaId: motId || null,
+            veiculoId: veicId || null,
+            dataHoraSaidaPrevista: slot.dateTime,
+            status: 'pre_agendado',
+            grupoReservaId,
+            userId: req.user!.id,
+          },
+          include,
+        }),
+      ),
+    )
+
+    for (const dataStr of porDia.keys()) {
+      invalidateDisponibilidadeCache(dataStr)
     }
 
-    return res.status(201).json({ grupoReservaId, agendamentos: criados, total: criados.length })
+    return res.status(201).json({
+      grupoReservaId,
+      agendamentos: criados.map((ag) => enriquecerAgendamento(ag, regras)),
+      total: criados.length,
+    })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao pré-agendar horários' })
@@ -298,7 +347,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: validacao.error })
     }
 
-    const userTransp = await getTransportadoraIdUsuario(req.user!.id, req.user!.perfil)
+    const userTransp = await getTransportadoraIdUsuario(req.user!.id)
     if (userTransp) data.transportadoraId = userTransp
 
     const agendamento = await prisma.agendamento.create({

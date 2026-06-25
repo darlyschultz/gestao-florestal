@@ -1,7 +1,8 @@
 import { prisma } from '../lib/prisma'
-import { cacheGetOrSet } from '../lib/cache'
+import { cacheClearPrefix, cacheGetOrSet } from '../lib/cache'
 
 const CACHE_TTL_MS = 60_000
+const TZ_AGENDAMENTO = 'America/Sao_Paulo'
 
 export interface SlotDisponibilidade {
   horario: string
@@ -79,8 +80,43 @@ async function getJanelasAtivas(diaSemana?: number) {
   })
 }
 
-function slotKeyFromDate(dt: Date): string {
-  return formatHorario(dt.getHours() * 60 + dt.getMinutes())
+export function normalizeHorario(h: string): string {
+  return formatHorario(parseHorario(h))
+}
+
+export function dataStrFromDate(dt: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ_AGENDAMENTO,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(dt)
+}
+
+export function horarioFromDate(dt: Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TZ_AGENDAMENTO,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(dt)
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0)
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? 0)
+  return formatHorario(hour * 60 + minute)
+}
+
+/** Data/hora de slot no fuso operacional (Brasil). */
+export function parseDataHorarioSlot(dataStr: string, horario: string): Date {
+  const norm = normalizeHorario(horario)
+  const [hh, mm] = norm.split(':').map(Number)
+  const h = String(hh).padStart(2, '0')
+  const m = String(mm || 0).padStart(2, '0')
+  return new Date(`${dataStr}T${h}:${m}:00-03:00`)
+}
+
+export function invalidateDisponibilidadeCache(dataStr?: string): void {
+  if (dataStr) cacheClearPrefix(`disponibilidade:${dataStr}`)
+  else cacheClearPrefix('disponibilidade:')
 }
 
 function countBySlot(
@@ -93,7 +129,8 @@ function countBySlot(
 
   for (const ag of agendamentos) {
     const dt = new Date(ag.dataHoraSaidaPrevista)
-    const minutes = dt.getHours() * 60 + dt.getMinutes()
+    const horario = horarioFromDate(dt)
+    const minutes = parseHorario(horario)
 
     for (const slot of slots) {
       const slotStart = parseHorario(slot)
@@ -229,27 +266,45 @@ export async function getDisponibilidadeDia(dataStr: string): Promise<Disponibil
   })
 }
 
-export async function validarHorarioAgendamento(dataHoraSaida: Date | string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const dt = new Date(dataHoraSaida)
-  const dataStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+export async function validarHorariosLote(
+  dataStr: string,
+  horarios: string[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const disp = await getDisponibilidadeDia(dataStr)
 
   if (!disp.temJanela || disp.slots.length === 0) {
     return { ok: false, error: 'Não há janela de agendamento para este dia' }
   }
 
-  const horario = slotKeyFromDate(dt)
-  const slot = disp.slots.find((s) => s.horario === horario)
+  const reservasPendentes = new Map<string, number>()
 
-  if (!slot) {
-    return { ok: false, error: 'Horário fora da janela de agendamento configurada' }
-  }
+  for (const raw of horarios) {
+    const horario = normalizeHorario(raw)
+    const slot = disp.slots.find((s) => normalizeHorario(s.horario) === horario)
 
-  if (!slot.disponivel) {
-    return { ok: false, error: `Horário ${horario} atingiu a capacidade máxima (${slot.capacidade} caminhões)` }
+    if (!slot) {
+      return { ok: false, error: `Horário ${horario} fora da janela de agendamento configurada` }
+    }
+
+    const extra = reservasPendentes.get(horario) || 0
+    if (slot.ocupados + extra >= slot.capacidade) {
+      return {
+        ok: false,
+        error: `Horário ${horario} atingiu a capacidade máxima (${slot.capacidade} caminhões)`,
+      }
+    }
+
+    reservasPendentes.set(horario, extra + 1)
   }
 
   return { ok: true }
+}
+
+export async function validarHorarioAgendamento(
+  dataHoraSaida: Date | string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const dt = new Date(dataHoraSaida)
+  return validarHorariosLote(dataStrFromDate(dt), [horarioFromDate(dt)])
 }
 
 export { prisma as agendamentoPrisma }
