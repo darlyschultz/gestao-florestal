@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Search, KeyRound } from 'lucide-react'
 import { PageLayout } from '../../components/layout/PageLayout'
-import { AppHeader } from '../../components/layout/AppHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -105,14 +104,10 @@ export function UsuariosAdmin() {
 
   return (
     <PageLayout
-      header={
-        <AppHeader
-          title="Usuários"
-          showBack
-          backPath="/cadastros"
-          rightContent={<Button size="sm" icon={<Plus size={16} />} onClick={openCreate}>Novo</Button>}
-        />
-      }
+      title="Usuários"
+      showBack
+      backPath="/cadastros"
+      rightContent={<Button size="sm" icon={<Plus size={16} />} onClick={openCreate}>Novo</Button>}
     >
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

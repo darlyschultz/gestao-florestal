@@ -1,25 +1,50 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, User } from 'lucide-react'
+import { ArrowLeft, Bell, User } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface HeaderProps {
   title?: string
   subtitle?: string
+  showBack?: boolean
+  backPath?: string
+  rightContent?: React.ReactNode
 }
 
-export function Header({ title = 'Rastreamento Florestal', subtitle }: HeaderProps) {
+export function Header({
+  title = 'Rastreamento Florestal',
+  subtitle,
+  showBack = false,
+  backPath,
+  rightContent,
+}: HeaderProps) {
   const navigate = useNavigate()
   const { user } = useAuth()
 
+  function handleBack() {
+    if (backPath) navigate(backPath)
+    else navigate(-1)
+  }
+
   return (
     <header className="hidden lg:flex items-center justify-between px-6 xl:px-8 py-4 bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div>
-        <h1 className="text-lg font-bold text-gray-900">{title}</h1>
-        {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+      <div className="flex items-center gap-3 min-w-0">
+        {showBack && (
+          <button
+            onClick={handleBack}
+            className="p-2 -ml-1 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
+          {subtitle && <p className="text-sm text-gray-500 truncate">{subtitle}</p>}
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
+        {rightContent}
         <button className="relative p-2.5 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
           <Bell size={20} />
           <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />

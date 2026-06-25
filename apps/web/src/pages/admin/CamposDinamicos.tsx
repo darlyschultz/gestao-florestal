@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { PageLayout } from '../../components/layout/PageLayout'
-import { AppHeader } from '../../components/layout/AppHeader'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
@@ -62,14 +61,10 @@ export function CamposDinamicos() {
 
   return (
     <PageLayout
-      header={
-        <AppHeader
-          title="Campos Dinâmicos"
-          showBack
-          backPath="/cadastros"
-          rightContent={<Button size="sm" icon={<Plus size={16} />} onClick={() => setShowForm(true)}>Novo</Button>}
-        />
-      }
+      title="Campos Dinâmicos"
+      showBack
+      backPath="/cadastros"
+      rightContent={<Button size="sm" icon={<Plus size={16} />} onClick={() => setShowForm(true)}>Novo</Button>}
     >
       <div className="space-y-2">
         {fields.map((f) => (

@@ -26,11 +26,13 @@ function DevDeviceIndicator() {
 
 interface AppLayoutProps {
   children: React.ReactNode
-  /** Header customizado (ex.: hero verde do menu no mobile) */
+  /** Header compacto (mobile/tablet) */
   mobileHeader?: React.ReactNode
-  /** Header desktop — título da página */
   title?: string
   subtitle?: string
+  showBack?: boolean
+  backPath?: string
+  rightContent?: React.ReactNode
   noPadding?: boolean
   noBottomNav?: boolean
 }
@@ -40,10 +42,13 @@ export function AppLayout({
   mobileHeader,
   title,
   subtitle,
+  showBack,
+  backPath,
+  rightContent,
   noPadding = false,
   noBottomNav = false,
 }: AppLayoutProps) {
-  const { isMobile, isDesktop } = useResponsiveLayout()
+  const { isDesktop } = useResponsiveLayout()
 
   const mainPadding = noPadding
     ? ''
@@ -56,14 +61,22 @@ export function AppLayout({
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 w-full">
-        {isDesktop && <Header title={title} subtitle={subtitle} />}
-        {isMobile && mobileHeader}
+        {isDesktop && (
+          <Header
+            title={title}
+            subtitle={subtitle}
+            showBack={showBack}
+            backPath={backPath}
+            rightContent={rightContent}
+          />
+        )}
+        {!isDesktop && mobileHeader}
 
         <main className={`flex-1 w-full ${mainPadding} ${bottomPad}`}>
           {children}
         </main>
 
-        {!noBottomNav && isMobile && <BottomNavigation />}
+        {!noBottomNav && !isDesktop && <BottomNavigation />}
       </div>
 
       <DevDeviceIndicator />

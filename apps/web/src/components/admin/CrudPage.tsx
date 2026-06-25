@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import { PageLayout } from '../layout/PageLayout'
-import { AppHeader } from '../layout/AppHeader'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -146,18 +145,14 @@ export function CrudPage({ config }: CrudPageProps) {
 
   return (
     <PageLayout
-      header={
-        <AppHeader
-          title={config.title}
-          subtitle={config.subtitle}
-          showBack
-          backPath={config.backPath || '/cadastros'}
-          rightContent={
-            <Button size="sm" icon={<Plus size={16} />} onClick={openCreate}>
-              Novo
-            </Button>
-          }
-        />
+      title={config.title}
+      subtitle={config.subtitle}
+      showBack
+      backPath={config.backPath || '/cadastros'}
+      rightContent={
+        <Button size="sm" icon={<Plus size={16} />} onClick={openCreate}>
+          Novo
+        </Button>
       }
     >
       <div className="relative mb-4">
