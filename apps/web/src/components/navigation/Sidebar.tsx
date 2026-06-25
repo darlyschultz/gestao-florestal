@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Home, Calendar, Truck, MapPin, BarChart2, Building2,
-  Settings, FileBarChart, LogOut,
+  Settings, FileBarChart, LogOut, Clock,
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -16,6 +16,7 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { to: '/menu', icon: Home, label: 'Início' },
   { to: '/agendamento/calendario', icon: Calendar, label: 'Agendamento', perfis: ['admin', 'transportador'] },
+  { to: '/agendamento/meus', icon: Clock, label: 'Meus Horários', perfis: ['admin', 'transportador', 'motorista'] },
   { to: '/viagens', icon: Truck, label: 'Viagens' },
   { to: '/portaria', icon: MapPin, label: 'Portaria', perfis: ['admin', 'portaria'] },
   { to: '/fila-patio', icon: Truck, label: 'Fila / Pátio', perfis: ['admin', 'portaria', 'operacao'] },

@@ -103,6 +103,7 @@ model User {
   ativo            Boolean   @default(true)
   transportadoraId String?
   unidadeId        String?
+  motoristaCadastroId String?
   deletedAt        DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -110,6 +111,7 @@ model User {
   role           Role?           @relation(fields: [roleId], references: [id])
   transportadora Transportadora? @relation(fields: [transportadoraId], references: [id])
   unidade        Unidade?        @relation(fields: [unidadeId], references: [id])
+  motoristaCadastro Motorista?   @relation(fields: [motoristaCadastroId], references: [id])
   agendamentos   Agendamento[]
   eventos        EventoViagem[]
   checkins       PortariaCheckin[]
@@ -191,6 +193,7 @@ model Motorista {
   agendamentos   Agendamento[]
   viagens        Viagem[]
   posicoes       PosicaoViagem[]
+  users          User[]
 
   @@map("motoristas")
 }
@@ -495,36 +498,56 @@ model Agendamento {
   id                      String    @id @default(uuid())
   numero                  String    @unique
   transportadoraId        String
-  motoristaId             String
-  veiculoId               String
-  fornecedorId            String
-  fazendaId               String
-  talhaoId                String
+  motoristaId             String?
+  veiculoId               String?
+  fornecedorId            String?
+  fazendaId               String?
+  talhaoId                String?
   localEmbarqueId         String?
-  tipoMadeira             String
-  quantidadePrevistaM3    Float
+  tipoMadeira             String?
+  quantidadePrevistaM3    Float?
   dataHoraSaidaPrevista   DateTime
-  dataHoraChegadaPrevista DateTime
+  dataHoraChegadaPrevista DateTime?
   observacoes             String?
-  status                  String    @default("agendado")
+  status                  String    @default("pre_agendado")
+  grupoReservaId          String?
   userId                  String
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
 
   transportadora Transportadora @relation(fields: [transportadoraId], references: [id])
-  motorista      Motorista      @relation(fields: [motoristaId], references: [id])
-  veiculo        Veiculo        @relation(fields: [veiculoId], references: [id])
-  fornecedor     Fornecedor     @relation(fields: [fornecedorId], references: [id])
-  fazenda        Fazenda        @relation(fields: [fazendaId], references: [id])
-  talhao         Talhao         @relation(fields: [talhaoId], references: [id])
+  motorista      Motorista?     @relation(fields: [motoristaId], references: [id])
+  veiculo        Veiculo?       @relation(fields: [veiculoId], references: [id])
+  fornecedor     Fornecedor?    @relation(fields: [fornecedorId], references: [id])
+  fazenda        Fazenda?       @relation(fields: [fazendaId], references: [id])
+  talhao         Talhao?        @relation(fields: [talhaoId], references: [id])
   localEmbarque  LocalEmbarque? @relation(fields: [localEmbarqueId], references: [id])
   user           User           @relation(fields: [userId], references: [id])
   viagem         Viagem?
+  documentos     DocumentoAgendamento[]
 
   @@index([dataHoraChegadaPrevista])
   @@index([dataHoraSaidaPrevista])
   @@index([status])
+  @@index([grupoReservaId])
   @@map("agendamentos")
+}
+
+model DocumentoAgendamento {
+  id            String   @id @default(uuid())
+  agendamentoId String
+  tipo          String
+  numero        String?
+  arquivo       String?
+  status        String   @default("pendente")
+  observacao    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agendamento Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+
+  @@index([agendamentoId])
+  @@map("documento_agendamentos")
 }
 
 model Viagem {

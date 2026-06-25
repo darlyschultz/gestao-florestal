@@ -7,7 +7,6 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { PageLayout } from '../../components/layout/PageLayout'
-import { AppHeader } from '../../components/layout/AppHeader'
 import { Button } from '../../components/ui/Button'
 import { agendamentosService } from '../../services/api'
 import { useAgendamentoRegras, diaPermiteAgendamento } from '../../hooks/useAgendamentoRegras'
@@ -19,12 +18,13 @@ const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
 interface HorariosGridProps {
   disponibilidade: DisponibilidadeDia | null
   loading: boolean
-  selectedSlot: string | null
-  onSelectSlot: (slot: string) => void
+  selectedSlots: Set<string>
+  onToggleSlot: (slot: string) => void
   cols?: number
+  multi?: boolean
 }
 
-function HorariosGrid({ disponibilidade, loading, selectedSlot, onSelectSlot, cols = 5 }: HorariosGridProps) {
+function HorariosGrid({ disponibilidade, loading, selectedSlots, onToggleSlot, cols = 5, multi = true }: HorariosGridProps) {
   const slots = disponibilidade?.slots || []
   const semJanela = disponibilidade && !disponibilidade.temJanela
 
@@ -63,7 +63,7 @@ function HorariosGrid({ disponibilidade, loading, selectedSlot, onSelectSlot, co
           <div key={ri} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
             {row.map((slot) => {
               const isOcupado = !slot.disponivel
-              const isSelected = selectedSlot === slot.horario
+              const isSelected = selectedSlots.has(slot.horario)
               const quaseLotado = slot.disponivel && slot.ocupados > 0
 
               return (
@@ -71,7 +71,7 @@ function HorariosGrid({ disponibilidade, loading, selectedSlot, onSelectSlot, co
                   key={slot.horario}
                   type="button"
                   disabled={isOcupado}
-                  onClick={() => onSelectSlot(slot.horario)}
+                  onClick={() => onToggleSlot(slot.horario)}
                   title={
                     isOcupado
                       ? `Lotado (${slot.ocupados}/${slot.capacidade})`
@@ -102,6 +102,9 @@ function HorariosGrid({ disponibilidade, loading, selectedSlot, onSelectSlot, co
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-50 border" /> Disponível</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-yellow-100 border border-yellow-300" /> Parcial</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-gray-200" /> Lotado</span>
+        {multi && (
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-forest-700" /> Selecionados</span>
+        )}
       </div>
     </div>
   )
@@ -113,9 +116,16 @@ export function Calendario() {
   const { isDesktop } = useResponsiveLayout()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set())
   const [disponibilidade, setDisponibilidade] = useState<DisponibilidadeDia | null>(null)
   const [loadingHorarios, setLoadingHorarios] = useState(false)
+  const [reservando, setReservando] = useState(false)
+  const [resumoMes, setResumoMes] = useState<Record<string, { total: number; incompletos: number }>>({})
+
+  useEffect(() => {
+    const mes = format(currentMonth, 'yyyy-MM')
+    agendamentosService.calendarioResumo(mes).then((r) => setResumoMes(r.data.dias || {})).catch(() => {})
+  }, [currentMonth])
 
   useEffect(() => {
     if (!selectedDate || !isDesktop) {
@@ -124,7 +134,7 @@ export function Calendario() {
     }
 
     setLoadingHorarios(true)
-    setSelectedSlot(null)
+    setSelectedSlots(new Set())
     const dataStr = format(selectedDate, 'yyyy-MM-dd')
 
     agendamentosService
@@ -161,18 +171,43 @@ export function Calendario() {
     if (!isSameMonth(date, currentMonth)) return
     if (!diaPermiteAgendamento(date, regras.diasComJanela)) return
     setSelectedDate(date)
-    setSelectedSlot(null)
+    setSelectedSlots(new Set())
   }
 
-  function handleSelectSlot(slot: string) {
+  function handleToggleSlot(slot: string) {
     const info = disponibilidade?.slots.find((s) => s.horario === slot)
     if (!info?.disponivel) return
-    setSelectedSlot(slot)
+    setSelectedSlots((prev) => {
+      const next = new Set(prev)
+      if (next.has(slot)) next.delete(slot)
+      else next.add(slot)
+      return next
+    })
   }
 
-  function handleContinuar() {
-    if (!selectedDate || !selectedSlot) return
-    const [h, m] = selectedSlot.split(':').map(Number)
+  async function handleReservarHorarios() {
+    if (!selectedDate || selectedSlots.size === 0) return
+    setReservando(true)
+    try {
+      const horarios = [...selectedSlots].map((slot) => {
+        const [h, m] = slot.split(':').map(Number)
+        const dt = new Date(selectedDate)
+        dt.setHours(h, m, 0, 0)
+        return dt.toISOString()
+      })
+      await agendamentosService.preAgendar({ horarios })
+      navigate('/agendamento/meus')
+    } catch {
+      alert('Erro ao reservar horários. Verifique disponibilidade.')
+    } finally {
+      setReservando(false)
+    }
+  }
+
+  function handleContinuarUmHorario() {
+    if (!selectedDate || selectedSlots.size !== 1) return
+    const slot = [...selectedSlots][0]
+    const [h, m] = slot.split(':').map(Number)
     const dt = new Date(selectedDate)
     dt.setHours(h, m, 0, 0)
     navigate('/agendamento/novo', { state: { dataHora: dt.toISOString() } })
@@ -246,15 +281,23 @@ export function Calendario() {
                 const today = isToday(day)
                 const disabled = isDisabledDay(day, inMonth)
                 const semJanela = inMonth && !disabled && !diaPermiteAgendamento(day, regras.diasComJanela)
+                const diaKey = format(day, 'yyyy-MM-dd')
+                const resumoDia = resumoMes[diaKey]
 
                 return (
                   <button
                     key={di}
                     onClick={() => handleSelectDate(day)}
                     disabled={disabled || semJanela}
-                    className={dayButtonClass({ inMonth, disabled, isSelected: !!isSelected, today, semJanela: !!semJanela })}
+                    className={`relative ${dayButtonClass({ inMonth, disabled, isSelected: !!isSelected, today, semJanela: !!semJanela })}`}
                   >
                     {format(day, 'd')}
+                    {resumoDia && resumoDia.incompletos > 0 && inMonth && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    )}
+                    {resumoDia && resumoDia.incompletos === 0 && resumoDia.total > 0 && inMonth && (
+                      <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-green-500" />
+                    )}
                   </button>
                 )
               })}
@@ -321,21 +364,29 @@ export function Calendario() {
             <HorariosGrid
               disponibilidade={disponibilidade}
               loading={loadingHorarios}
-              selectedSlot={selectedSlot}
-              onSelectSlot={handleSelectSlot}
+              selectedSlots={selectedSlots}
+              onToggleSlot={handleToggleSlot}
               cols={6}
             />
 
-            {selectedSlot && (
+            {selectedSlots.size > 0 && (
               <div className="pt-2 border-t border-gray-100 space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Selecionado</span>
-                  <span className="font-bold text-forest-800">
-                    {format(selectedDate, 'dd/MM/yyyy')} às {selectedSlot}
-                  </span>
+                <div className="text-sm">
+                  <span className="text-gray-500">{selectedSlots.size} horário(s) selecionado(s)</span>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {[...selectedSlots].sort().join(', ')}
+                  </p>
                 </div>
-                <Button fullWidth size="lg" onClick={handleContinuar}>
-                  Continuar agendamento →
+                <Button fullWidth size="lg" loading={reservando} onClick={handleReservarHorarios}>
+                  Reservar {selectedSlots.size} horário{selectedSlots.size > 1 ? 's' : ''}
+                </Button>
+                {selectedSlots.size === 1 && (
+                  <Button fullWidth variant="outline" onClick={handleContinuarUmHorario}>
+                    Preencher tudo agora (fluxo completo)
+                  </Button>
+                )}
+                <Button fullWidth variant="ghost" size="sm" onClick={() => navigate('/agendamento/meus')}>
+                  Ver meus agendamentos
                 </Button>
               </div>
             )}
@@ -348,24 +399,26 @@ export function Calendario() {
   return (
     <PageLayout
       title="Agendamento de Transporte"
-      subtitle="Selecione a data e o horário"
-      header={
-        !isDesktop ? (
-          <AppHeader
-            title="Agendamento de Transporte"
-            subtitle="Selecione o dia desejado"
-            showBack
-            backPath="/menu"
-            rightContent={<Calendar size={20} className="text-gray-500" />}
-          />
-        ) : undefined
+      subtitle="Selecione data(s) e horário(s) — pré-reserva rápida"
+      showBack
+      backPath="/menu"
+      rightContent={
+        <Button size="sm" variant="outline" onClick={() => navigate('/agendamento/meus')}>
+          Meus
+        </Button>
       }
     >
       <div className="space-y-4 lg:space-y-0">
         {!loadingRegras && regras.diasComJanela.length > 0 && (
-          <div className="text-xs text-center lg:text-left text-gray-500 bg-forest-50 rounded-xl py-2 px-3 mb-4">
-            Dias com janela de agendamento:{' '}
-            <span className="font-medium text-forest-800">{diasLabel}</span>
+          <div className="text-xs text-center lg:text-left text-gray-500 bg-forest-50 rounded-xl py-2 px-3 mb-4 space-y-1">
+            <p>
+              Dias com janela:{' '}
+              <span className="font-medium text-forest-800">{diasLabel}</span>
+            </p>
+            <p>
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1" /> pendências
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500 ml-3 mr-1" /> completos
+            </p>
           </div>
         )}
 

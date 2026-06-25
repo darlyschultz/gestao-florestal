@@ -29,6 +29,11 @@ async function main() {
     unidadeId: unidade.id,
     transportadoraId: cadastros.transportadoras.transf1.id,
   })
+
+  await prisma.user.update({
+    where: { id: users.userMotorista.id },
+    data: { motoristaCadastroId: cadastros.motoristas.mot1.id },
+  })
   await seedCustomFields()
   await seedOperacional(cadastros, users)
   await seedAuditLogs(users.userAdmin.id)

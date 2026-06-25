@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Calendar, Truck, Wrench, Zap, Bell, Map, Building2,
-  BarChart2, FileBarChart, LogOut, ChevronRight, User,
+  BarChart2, FileBarChart, LogOut, ChevronRight, User, Clock,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { PageLayout } from '../components/layout/PageLayout'
@@ -23,12 +23,21 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   {
     title: 'Agendamento de Transporte',
-    description: 'Agende e gerencie transportes',
+    description: 'Reserve horários e complete depois',
     icon: <Calendar size={24} />,
     to: '/agendamento/calendario',
     color: 'text-forest-700',
     bg: 'bg-forest-100',
     perfis: ['admin', 'transportador'],
+  },
+  {
+    title: 'Meus Horários',
+    description: 'Pré-agendamentos e pendências',
+    icon: <Clock size={24} />,
+    to: '/agendamento/meus',
+    color: 'text-amber-700',
+    bg: 'bg-amber-100',
+    perfis: ['admin', 'transportador', 'motorista'],
   },
   {
     title: 'Entrega de Madeira',

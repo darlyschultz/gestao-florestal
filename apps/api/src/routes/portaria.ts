@@ -61,6 +61,12 @@ function applyStatusFilter(
   if (!status || status === 'todos') return
 
   switch (status) {
+    case 'pre_agendado':
+      where.status = 'pre_agendado'
+      break
+    case 'agendado':
+      where.status = 'agendado'
+      break
     case 'pendente_checkin':
       where.viagem = { status: { in: [...STATUS_PENDENTE_CHECKIN] } }
       break

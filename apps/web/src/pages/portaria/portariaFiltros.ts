@@ -1,5 +1,6 @@
 export const STATUS_FILTROS = [
   { label: 'Aguardando check-in', value: 'pendente_checkin' },
+  { label: 'Pré-agendado', value: 'pre_agendado' },
   { label: 'Em trânsito', value: 'em_transito' },
   { label: 'Próx. fábrica', value: 'proximo_fabrica' },
   { label: 'Agendado', value: 'agendado' },

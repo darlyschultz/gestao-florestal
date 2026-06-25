@@ -40,12 +40,21 @@ export const agendamentosService = {
   regras: () => api.get('/api/agendamentos/regras'),
   disponibilidade: (data: string) =>
     api.get('/api/agendamentos/disponibilidade', { params: { data } }),
+  calendarioResumo: (mes: string) =>
+    api.get('/api/agendamentos/calendario-resumo', { params: { mes } }),
   horariosOcupados: (data: string) =>
     api.get('/api/agendamentos/ocupados', { params: { data } }),
   get: (id: string) => api.get(`/api/agendamentos/${id}`),
+  pendencias: (id: string) => api.get(`/api/agendamentos/${id}/pendencias`),
   create: (data: object) => api.post('/api/agendamentos', data),
+  preAgendar: (data: { transportadoraId?: string; horarios: string[]; motoristaId?: string; veiculoId?: string }) =>
+    api.post('/api/agendamentos/pre-agendar', data),
   update: (id: string, data: object) => api.put(`/api/agendamentos/${id}`, data),
   confirmar: (id: string, data?: object) => api.post(`/api/agendamentos/${id}/confirmar`, data),
+  listDocumentos: (id: string) => api.get(`/api/agendamentos/${id}/documentos`),
+  saveDocumento: (id: string, data: { tipo: string; numero?: string; arquivo?: string }) =>
+    api.post(`/api/agendamentos/${id}/documentos`, data),
+  motoristaContexto: () => api.get('/api/agendamentos/motorista/contexto'),
 }
 
 // Viagens

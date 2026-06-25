@@ -15,6 +15,8 @@ import { NovoAgendamento } from './pages/agendamento/NovoAgendamento'
 import { Documentos } from './pages/agendamento/Documentos'
 import { LocalEmbarque } from './pages/agendamento/LocalEmbarque'
 import { Resumo } from './pages/agendamento/Resumo'
+import { MeusAgendamentos } from './pages/agendamento/MeusAgendamentos'
+import { CompletarAgendamento } from './pages/agendamento/CompletarAgendamento'
 
 // Viagens
 import { MinhasViagens } from './pages/viagens/MinhasViagens'
@@ -99,6 +101,8 @@ function AppRoutes() {
       <Route path="/agendamento/documentos" element={<PrivateRoute><Documentos /></PrivateRoute>} />
       <Route path="/agendamento/local-embarque" element={<PrivateRoute><LocalEmbarque /></PrivateRoute>} />
       <Route path="/agendamento/resumo" element={<PrivateRoute><Resumo /></PrivateRoute>} />
+      <Route path="/agendamento/meus" element={<PrivateRoute><MeusAgendamentos /></PrivateRoute>} />
+      <Route path="/agendamento/completar/:id" element={<PrivateRoute><CompletarAgendamento /></PrivateRoute>} />
 
       {/* Viagens */}
       <Route path="/viagens" element={<PrivateRoute><MinhasViagens /></PrivateRoute>} />
