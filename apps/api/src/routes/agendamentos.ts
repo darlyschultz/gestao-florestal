@@ -284,10 +284,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     if (status) where.status = status
     if (data) {
-      const d = new Date(data as string)
-      const nextDay = new Date(d)
-      nextDay.setDate(nextDay.getDate() + 1)
-      where.dataHoraSaidaPrevista = { gte: d, lt: nextDay }
+      const dataStr = String(data).slice(0, 10)
+      const inicio = new Date(`${dataStr}T00:00:00-03:00`)
+      const fim = new Date(inicio.getTime() + 24 * 60 * 60 * 1000)
+      where.dataHoraSaidaPrevista = { gte: inicio, lt: fim }
     }
     if (mes) {
       const [ano, mesNum] = (mes as string).split('-').map(Number)

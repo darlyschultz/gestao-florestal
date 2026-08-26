@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { AlertCircle, Calendar, ChevronRight, Clock, FileText, Truck } from 'lucide-react'
+import { AlertCircle, Calendar, ChevronRight, Clock, FileText, Truck, X } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { Input } from '../../components/ui/Input'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { agendamentosService } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
@@ -36,17 +37,24 @@ export function MeusAgendamentos() {
   const [items, setItems] = useState<AgendamentoItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<'todos' | 'pendentes'>('pendentes')
+  const [dataFiltro, setDataFiltro] = useState('')
 
   function load() {
     setLoading(true)
+    const params: Record<string, string> = {}
+    if (filtro === 'pendentes') params.incompletos = 'true'
+    if (dataFiltro) params.data = dataFiltro
+
     agendamentosService
-      .list(filtro === 'pendentes' ? { incompletos: 'true' } : {})
+      .list(params)
       .then((r) => setItems(r.data))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [filtro])
+  useEffect(() => { load() }, [filtro, dataFiltro])
+
+  const hoje = format(new Date(), 'yyyy-MM-dd')
 
   const titulo = user?.perfil === 'motorista' ? 'Meus Horários' : 'Meus Agendamentos'
 
@@ -62,21 +70,53 @@ export function MeusAgendamentos() {
         </Button>
       }
     >
-      <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => setFiltro('pendentes')}
-          className={`flex-1 py-2 rounded-xl text-sm font-semibold ${filtro === 'pendentes' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}
-        >
-          Com pendências
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltro('todos')}
-          className={`flex-1 py-2 rounded-xl text-sm font-semibold ${filtro === 'todos' ? 'bg-forest-100 text-forest-800' : 'bg-gray-100 text-gray-600'}`}
-        >
-          Todos
-        </button>
+      <div className="mb-4 space-y-3">
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <Input
+              label="Filtrar por data"
+              type="date"
+              value={dataFiltro}
+              onChange={(e) => setDataFiltro(e.target.value)}
+            />
+          </div>
+          {dataFiltro ? (
+            <button
+              type="button"
+              onClick={() => setDataFiltro('')}
+              className="p-3 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 shrink-0 mb-0.5"
+              aria-label="Limpar data"
+            >
+              <X size={18} />
+            </button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 mb-0.5"
+              onClick={() => setDataFiltro(hoje)}
+            >
+              Hoje
+            </Button>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setFiltro('pendentes')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold ${filtro === 'pendentes' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}
+          >
+            Com pendências
+          </button>
+          <button
+            type="button"
+            onClick={() => setFiltro('todos')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold ${filtro === 'todos' ? 'bg-forest-100 text-forest-800' : 'bg-gray-100 text-gray-600'}`}
+          >
+            Todos
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -89,7 +129,11 @@ export function MeusAgendamentos() {
         <div className="text-center py-16">
           <Calendar size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">
-            {filtro === 'pendentes' ? 'Nenhum agendamento com pendências' : 'Nenhum agendamento'}
+            {dataFiltro
+              ? `Nenhum horário em ${format(new Date(dataFiltro + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}`
+              : filtro === 'pendentes'
+                ? 'Nenhum agendamento com pendências'
+                : 'Nenhum agendamento'}
           </p>
           {user?.perfil === 'motorista' ? (
             <Button className="mt-4" onClick={() => navigate('/agendamento/calendario')}>
