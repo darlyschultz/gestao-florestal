@@ -14,11 +14,5 @@
       "memory": 1024,
       "includeFiles": "apps/api/prisma/**"
     }
-  },
-  "crons": [
-    {
-      "path": "/api/health",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  }
 }
